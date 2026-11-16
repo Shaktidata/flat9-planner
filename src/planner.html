@@ -575,7 +575,7 @@ function buildObj(def,variant){
 }
 
 /* ================= ITEMS ================= */
-let items=[],sel=null,uidN=1;
+let items=[],sel=null,uidN=1,view='3d';
 function footprint(it){const [w,d]=it.def.d.map(v=>v/100);const a=it.r*Math.PI/180;return{c:[it.x,it.z],ax:[[Math.cos(a),-Math.sin(a)],[Math.sin(a),Math.cos(a)]],h:[w/2,d/2]};}
 const WALLR=WALLS.map(w=>({x0:wx(w[0]),x1:wx(w[1]),z0:wz(w[3]),z1:wz(w[2])}));
 function obbVsRect(f,r,tol){
@@ -602,7 +602,7 @@ function defElev(def){if(def.mount==='ceil')return CEIL-def.d[2]/100;return def.
 function makeItem(id,x,z,r,e,vi){
   const def=BYID[id];if(!def)return null;const it={uid:uidN++,id,def,x,z,r:r||0,e:(e==null?defElev(def):e),vi:vi||0};
   it.obj=buildObj(def,it.vi);it.obj.userData.uid=it.uid;it.obj.traverse(o=>{o.userData.uid=o.userData.uid||it.uid;});
-  scene.add(it.obj);placeObj(it);items.push(it);return it;
+  scene.add(it.obj);placeObj(it);items.push(it);if(def.mount==='ceil'&&view==='top')it.obj.visible=false;return it;
 }
 function placeObj(it){it.obj.position.set(it.x,it.e,it.z);it.obj.rotation.y=it.r*Math.PI/180;}
 function rebuildObj(it){scene.remove(it.obj);it.obj=buildObj(it.def,it.vi);it.obj.userData.uid=it.uid;scene.add(it.obj);placeObj(it);}
@@ -765,12 +765,14 @@ $('#clear-yes').onclick=()=>{items.forEach(i=>scene.remove(i.obj));items=[];sele
 /* ================= TABS, VIEWS, WALLS ================= */
 const tabs=[['t-add','p-add'],['t-fin','p-fin'],['t-list','p-list']];
 tabs.forEach(([t,p])=>$('#'+t).onclick=()=>tabs.forEach(([t2,p2])=>{$('#'+t2).setAttribute('aria-selected',t2===t);$('#'+p2).hidden=p2!==p;}));
-let view='3d',anim=null;
+let anim=null;
 function fly(pos,tgt,dur){const p0=camera.position.clone(),t0=controls.target.clone(),st=performance.now();dur=matchMedia('(prefers-reduced-motion: reduce)').matches?0:(dur||600);
   anim=now=>{const k=dur?Math.min(1,(now-st)/dur):1,e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;camera.position.lerpVectors(p0,pos,e);controls.target.lerpVectors(t0,tgt,e);if(k>=1)anim=null;};}
-function setView(v){view=v;['v3d','vtop','veye'].forEach(id=>$('#'+id).setAttribute('aria-pressed',id==='v'+v));}
-function view3d(){setView('3d');fly(new THREE.Vector3(9.5,13,13),new THREE.Vector3(0,0,0.6));}
-function viewTop(){setView('top');fly(new THREE.Vector3(0,22,0.01),new THREE.Vector3(0,0,0));}
+function setView(v){view=v;['v3d','vtop','veye'].forEach(id=>$('#'+id).setAttribute('aria-pressed',id==='v'+v));
+  items.forEach(i=>{if(i.def.mount==='ceil')i.obj.visible=v!=='top';});}
+function fitDist(){const t=Math.tan(camera.fov*Math.PI/360);const a=camera.aspect||1;return Math.max((YN/1000)*1.08/(2*t),(XE/1000)*1.08/(2*t*a));}
+function view3d(){setView('3d');const k=Math.max(1,fitDist()/16);fly(new THREE.Vector3(9.5*k,13*k,13*k),new THREE.Vector3(0,0,0.6));}
+function viewTop(){setView('top');fly(new THREE.Vector3(0,fitDist(),0.01),new THREE.Vector3(0,0,0));}
 function eyeView(r){setView('eye');r=r||ROOMS.find(x=>x.id===$('#room').value)||ROOMS[0];const m=r.m;
   const cx=(m[0]+m[1])/2,cz=(m[2]+m[3])/2;fly(new THREE.Vector3(m[0]+0.35+(m[1]-m[0])*0.05,1.55,m[3]-0.35),new THREE.Vector3(cx+(m[1]-m[0])*0.15,1.1,cz-(m[3]-m[2])*0.15));
   if(wallCap<3)setWalls(3);}
@@ -779,11 +781,11 @@ function setWalls(h){wallCap=h;buildWalls();$('#wcut').setAttribute('aria-presse
 $('#wcut').onclick=()=>setWalls(1.2);$('#wfull').onclick=()=>setWalls(3);
 $('#lbl').onclick=()=>{labelsOn=!labelsOn;labelGroup.visible=labelsOn;$('#lbl').setAttribute('aria-pressed',labelsOn);};
 
-camera.position.set(9.5,13,13);controls.target.set(0,0,0.6);
+camera.position.set(9.5,13,13);controls.target.set(0,0,0.6);let fitted=false;
 
 /* ================= RENDER LOOP ================= */
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
-new ResizeObserver(resize).observe(stage);resize();
+new ResizeObserver(()=>{resize();if(!fitted&&camera.aspect){fitted=true;const k=Math.max(1,fitDist()/16);camera.position.set(9.5*k,13*k,13*k);}}).observe(stage);resize();
 function loop(now){requestAnimationFrame(loop);if(anim)anim(now);controls.update();renderer.render(scene,camera);}
 requestAnimationFrame(loop);
 $('#loading').hidden=true;

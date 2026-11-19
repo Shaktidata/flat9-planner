@@ -4,7 +4,7 @@
 
    To add another home, copy this file to src/properties/<id>.js, change the numbers, and run build.py.
    Each home lists:
-     walls     {r:[x0,x1,y0,y1], h, kind:'wall'|'rail'}
+     walls     {r:[x0,x1,y0,y1], h, kind:'wall'|'parapet' (low brick wall)|'rail' (glass railing)}
      openings  doors and windows cut into one wall: type 'door' (hinged), 'slide2', 'slide3' (sliding doors),
                'pivot', 'slide', 'louvre' (windows), with height range z:[bottom, top]
      rooms     {id, name, size, r:[x0,x1,y0,y1], extra:[more rects], out:true for outdoor}
@@ -25,7 +25,8 @@ const tm_y1=top_y0+4*F, mbed_y0=tm_y1+I, mbed_y1=mbed_y0+14*F, sit_y0=mbed_y1+I,
 const bed1_y0=sit_y1-14.5*F, tw_top=bed1_y0-I, th=(tw_top-top_y0-I)/2, tl_y1=top_y0+th, tu_y0=tl_y1+I;
 
 const W=(x0,x1,y0,y1,o)=>Object.assign({r:[x0,x1,y0,y1],h:H,kind:'wall'},o||{});
-const R=(x0,x1,y0,y1)=>W(x0,x1,y0,y1,{h:RAIL,kind:'rail'});
+const R=(x0,x1,y0,y1)=>W(x0,x1,y0,y1,{h:RAIL,kind:'rail'});          // glass railing
+const BP=(x0,x1,y0,y1)=>W(x0,x1,y0,y1,{h:RAIL,kind:'parapet'});     // low brick wall
 // walls
 const wLivS=W(tw_x0,XE,0,E), wEast=W(kit_x1,XE,0,mid_y1+E), wLivW=W(tw_x0,living_x0,E,liv_y1);
 const wB2S=W(0,sw1,liv_y1,mid_y0), wPartL=W(sw1,sw1+4.5*F,liv_y1,mid_y0), wPartR=W(sw1+7.5*F,kit_x1,liv_y1,mid_y0);
@@ -34,7 +35,7 @@ const wMW=W(A-E,A,mid_y1,sit_y0), wMTE=W(tm_x1,tm_x1+I,top_y0,mbed_y0), wMS=W(A,
 const wShUp=W(sw0,sw1,tm_y1,sit_y1), wMN=W(A,sw0,mbed_y1,sit_y0), wB1N=W(sw0,bed1_x1+E,sit_y1,YN);
 const wB1E=W(bed1_x1,bed1_x1+E,mid_y1,YN), wKNx=W(bed1_x1,XE,mid_y1,mid_y1+E), wKN=W(t_x0-I,bed1_x1,mid_y1,top_y0);
 const wTW=W(t_x0-I,t_x0,top_y0,tw_top), wTD=W(t_x0,bed1_x1,tl_y1,tu_y0), wB1S=W(sw1,bed1_x1,tw_top,bed1_y0);
-const rTS=R(terr_x0-I,tw_x0,-I,0), rTW=R(terr_x0-I,terr_x0,0,liv_y1), rBW=R(A-I,A,sit_y0,sit_y1+I), rBN=R(A-I,sw0,sit_y1,sit_y1+I);
+const rTS=R(terr_x0-I,tw_x0,-I,0), rTW=R(terr_x0-I,terr_x0,0,liv_y1), rBW=BP(A-I,A,sit_y0,sit_y1+I), rBN=BP(A-I,sw0,sit_y1,sit_y1+I);
 const walls=[wLivS,wEast,wLivW,wB2S,wPartL,wPartR,wShLo,wB2W,wB2N,wB2Nx,wMW,wMTE,wMS,wShUp,wMN,wB1N,wB1E,wKNx,wKN,wTW,wTD,wB1S,rTS,rTW,rBW,rBN];
 
 // opening on wall w between a0 and a1 along the wall

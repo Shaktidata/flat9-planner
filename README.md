@@ -12,13 +12,18 @@ Each visitor's layout is saved in their own browser. To share a layout, open **L
 
 ## Making changes
 
-1. Edit `src/planner.html`. Claude also publishes this same file as a private preview page first.
-2. Run `python3 build.py` to regenerate `index.html`.
-3. Commit and push to `main`. GitHub Pages updates the live site within a minute or two.
+1. Edit `src/app.html` (the planner) or a home in `src/properties/`.
+2. Run `python3 build.py`. It writes `index.html` for GitHub Pages and `dist/preview.html` for the private Claude preview.
+3. Check the preview, then open a pull request. Merging to `main` updates the live site within a minute or two.
+
+## Adding another home
+
+Copy `src/properties/flat9.js` to `src/properties/<id>.js`, give it a new `id` and `name`, and change its walls, doors, windows, rooms and built-ins. Run `build.py` and the home appears in the **Home** menu. Each home keeps its own saved layout.
 
 ## Files
 
-- `src/planner.html`: the planner page (source)
-- `build.py`: wraps the source into a full web page
+- `src/app.html`: the planner (3D engine and interface)
+- `src/properties/*.js`: one file per home
+- `build.py`: inlines the homes into the planner and builds the pages
 - `index.html`: the built page that GitHub Pages serves
 - `.nojekyll`: tells Pages to serve the files as they are

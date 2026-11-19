@@ -37,6 +37,7 @@ header{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:10px 
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
 .ctl-label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:6px}
 .ctl{display:flex;align-items:center}
+.homesel{width:auto;padding:5px 28px 5px 10px;font-weight:600;font-family:var(--font-display)}
 aside{border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
 .tabs{display:flex;border-bottom:1px solid var(--line);padding:0 8px}
 .tabs button{flex:1;border:0;background:none;padding:12px 4px 10px;white-space:nowrap;font-size:13.5px;cursor:pointer;color:var(--muted);font-weight:500;border-bottom:2px solid transparent}
@@ -113,7 +114,8 @@ a{color:var(--accent)}
 
 <div class="app">
   <header>
-    <div class="brand"><h1>Flat 9 Planner</h1><span>Pune · 3 bedrooms · marble floors · 9″ brick walls</span></div>
+    <div class="brand"><h1>Home Planner</h1><span id="sub"></span></div>
+    <div class="ctl"><label class="ctl-label" for="home">Home</label><select id="home" class="homesel"></select></div>
     <div class="ctl"><span class="ctl-label">View</span>
       <div class="seg" role="group" aria-label="Camera view">
         <button id="v3d" aria-pressed="true">3D</button><button id="vtop" aria-pressed="false">Top</button><button id="veye" aria-pressed="false">Eye level</button>
@@ -172,7 +174,7 @@ a{color:var(--accent)}
   </aside>
 
   <div class="stage" id="stage">
-    <canvas id="view" aria-label="3D view of Flat 9"></canvas>
+    <canvas id="view" aria-label="3D view of the home"></canvas>
     <div class="loading" id="loading">Loading the 3D view…</div>
     <div class="hint" id="hint">Drag to look around · scroll or pinch to zoom · click an item to select it, then drag it to move</div>
     <div class="insp" id="insp" hidden></div>
@@ -182,6 +184,7 @@ a{color:var(--accent)}
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<!--PROPERTIES-->
 <script>
 (function(){
 "use strict";
@@ -190,90 +193,62 @@ const toastEl=$('#toast');let toastT;
 function toast(m){toastEl.textContent=m;toastEl.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('on'),1800);}
 if(!window.THREE||!THREE.OrbitControls){$('#loading').textContent='The 3D library could not load. Check your connection and reload the page.';return;}
 
-/* ================= FLAT GEOMETRY (mm, X east, Y north) — same as the FreeCAD model ================= */
-const F=304.8,E=230,I=115,H=3000,PH=1050,DH=2100,CEIL=3.0;
-const x0=E,b3x1=x0+13*F,kit_x0=b3x1+I,kit_x1=kit_x0+15*F,XE=kit_x1+E;
-const living_x0=kit_x1-18*F,tw_x0=living_x0-E;
-const mb_x1=x0+11*F,bed2_x0=mb_x1+I,bed2_x1=bed2_x0+10.5*F,tm_x1=x0+8*F,t_x1=bed2_x1,t_x0=t_x1-7*F;
-const liv_y1=E+11.5*F,mid_y0=liv_y1+E,mid_y1=mid_y0+10*F,top_y0=mid_y1+I;
-const tm_y1=top_y0+4*F,mbed_y0=tm_y1+I,mbed_y1=mbed_y0+14*F,sit_y0=mbed_y1+I,sit_y1=sit_y0+5.5*F,YN=sit_y1+E;
-const bed2_y0=sit_y1-14.5*F,tw_top=bed2_y0-I,th=(tw_top-top_y0-I)/2,tl_y1=top_y0+th,tu_y0=tl_y1+I;
-const CX=XE/2000,CZ=YN/2000;
-const wx=xmm=>xmm/1000-CX, wz=ymm=>-(ymm/1000)+CZ; // world coords (m)
-
-const WALLS=[
- [tw_x0,XE,0,E,H],[kit_x1,XE,0,mid_y1+E,H],[tw_x0,living_x0,E,liv_y1,H],[0,kit_x0,liv_y1,mid_y0,H],
- [kit_x0+3*F,kit_x1,liv_y1,mid_y0,H],[b3x1,kit_x0,mid_y0,mid_y1,H],[0,E,liv_y1,sit_y0,H],[0,kit_x0,mid_y1,top_y0,H],
- [t_x0-I,bed2_x1,mid_y1,top_y0,H],[bed2_x1,XE,mid_y1,mid_y1+E,H],[tm_x1,tm_x1+I,top_y0,mbed_y0,H],[E,mb_x1,tm_y1,mbed_y0,H],
- [mb_x1,bed2_x0,tm_y1,sit_y1,H],[E,mb_x1,mbed_y1,sit_y0,H],[mb_x1,bed2_x1+E,sit_y1,YN,H],[bed2_x1,bed2_x1+E,mid_y1+E,YN,H],
- [bed2_x0,bed2_x1,tw_top,bed2_y0,H],[t_x0-I,t_x0,top_y0,tw_top,H],[t_x0,bed2_x1,tl_y1,tu_y0,H],
- // parapets
- [0,tw_x0,0,E,PH],[0,E,E,liv_y1,PH],[0,E,sit_y0,YN,PH],[0,mb_x1,sit_y1,YN,PH]
-];
-const M=300;
-const OPENINGS=[
- {r:[kit_x1-M,XE+M,E+150,E+1150],z:[0,DH]},                 // entry door
- {r:[tw_x0-M,living_x0+M,E+800,E+2700],z:[0,DH],glass:true}, // terrace sliding door
- {r:[b3x1-1000,b3x1-100,mid_y1-M,top_y0+M],z:[0,DH]},
- {r:[tm_x1+I,mb_x1,tm_y1-M,mbed_y0+M],z:[0,DH]},
- {r:[tm_x1-800,tm_x1-50,tm_y1-M,mbed_y0+M],z:[0,DH]},
- {r:[mb_x1-850,mb_x1-50,mbed_y1-M,sit_y0+M],z:[0,DH]},
- {r:[bed2_x0+20,bed2_x0+920,tw_top-M,bed2_y0+M],z:[0,DH]},
- {r:[t_x0-I-M,t_x0+M,tw_top-800,tw_top-50],z:[0,DH]},
- {r:[t_x0-I-M,t_x0+M,top_y0+50,top_y0+800],z:[0,DH]},
- {r:[bed2_x0+0.13*10.5*F,bed2_x0+0.84*10.5*F,sit_y1-M,YN+M],z:[900,2100],glass:true}
-];
-const ROOMS=[
- {id:'living',name:'Living',size:"18′ × 11′6″",r:[living_x0,kit_x1,E,liv_y1]},
- {id:'kitchen',name:'Kitchen & dining',size:"15′ × 10′",r:[kit_x0,kit_x1,mid_y0,mid_y1]},
- {id:'mbed',name:'Master bedroom',size:"11′ × 14′",r:[E,mb_x1,mbed_y0,mbed_y1]},
- {id:'bed2',name:'Bedroom 2',size:"10′6″ × 14′6″",r:[bed2_x0,bed2_x1,bed2_y0,sit_y1]},
- {id:'bed3',name:'Bedroom 3',size:"13′ × 10′",r:[E,b3x1,mid_y0,mid_y1]},
- {id:'terrace',name:'Terrace',size:"10′ × 11′6″",r:[E,tw_x0,E,liv_y1],out:true},
- {id:'sitout',name:'Sitout',size:"11′ × 5′6″",r:[E,mb_x1,sit_y0,sit_y1],out:true},
- {id:'mbtoilet',name:'Master toilet',size:"8′ × 4′",r:[E,tm_x1,top_y0,tm_y1]},
- {id:'toiletA',name:'Toilet',size:"7′ × 4′6″",r:[t_x0,bed2_x1,top_y0,tl_y1]},
- {id:'toiletB',name:'Toilet',size:"7′ × 4′6″",r:[t_x0,bed2_x1,tu_y0,tw_top]},
- {id:'passage',name:'Passage',size:'',r:[tm_x1+I,t_x0-I,top_y0,mbed_y0],extra:[[bed2_x0,t_x0-I,mbed_y0,tw_top],[kit_x0,t_x0-I,mid_y1,top_y0],[kit_x0,kit_x0+3*F,liv_y1,mid_y0]]}
-];
-ROOMS.forEach(r=>{r.rects=[r.r].concat(r.extra||[]);r.m=[wx(r.r[0]),wx(r.r[1]),wz(r.r[3]),wz(r.r[2])];}); // m:[x0,x1,z0(north),z1(south)]
+/* ================= HOMES (each home's data lives in src/properties/<id>.js) ================= */
+const HOMES=(window.PLANNER_PROPERTIES||[]);
+if(!HOMES.length){$('#loading').textContent='No home data was found in this page.';return;}
+let P,WALLS,OPENINGS,ROOMS,FIXTURES,H=3000,CEIL=3,CX=0,CZ=0,SPANX=10,SPANZ=10,WALLR=[],SWINGR=[];
+const wx=xmm=>xmm/1000-CX, wz=ymm=>-(ymm/1000)+CZ; // plan mm -> world m (plan up = world -z)
+const isHoriz=r=>(r[1]-r[0])>=(r[3]-r[2]);
+function useProperty(p){
+  P=p;WALLS=p.walls;OPENINGS=p.openings||[];ROOMS=p.rooms;FIXTURES=p.fixtures||[];H=p.ceiling||3000;CEIL=H/1000;
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  WALLS.concat(ROOMS).forEach(o=>{const r=o.r;x0=Math.min(x0,r[0]);x1=Math.max(x1,r[1]);y0=Math.min(y0,r[2]);y1=Math.max(y1,r[3]);});
+  CX=(x0+x1)/2000;CZ=(y0+y1)/2000;SPANX=(x1-x0)/1000;SPANZ=(y1-y0)/1000;
+  ROOMS.forEach(r=>{r.rects=[r.r].concat(r.extra||[]);r.m=[wx(r.r[0]),wx(r.r[1]),wz(r.r[3]),wz(r.r[2])];});
+  const rr=r=>({x0:wx(r[0]),x1:wx(r[1]),z0:wz(r[3]),z1:wz(r[2])});
+  WALLR=WALLS.map(w=>rr(w.r)).concat(FIXTURES.map(f=>rr(f.r)));
+  SWINGR=OPENINGS.filter(o=>o.type==='door').map(o=>{const r=o.r,hz=isHoriz(o.wall.r),w=hz?r[1]-r[0]:r[3]-r[2];
+    if(hz){const f=o.swing>0?r[3]:r[2],g=f+o.swing*w;return rr([r[0],r[1],Math.min(f,g),Math.max(f,g)]);}
+    const f=o.swing>0?r[1]:r[0],g=f+o.swing*w;return rr([Math.min(f,g),Math.max(f,g),r[2],r[3]]);});
+}
+function planInRoom(x,y){return ROOMS.some(r=>r.rects.some(c=>x>c[0]&&x<c[1]&&y>c[2]&&y<c[3]));}
 
 /* ================= CATALOGUE ================= */
-const P='https://www.ikea.com/au/en/p/';
+const IKP='https://www.ikea.com/au/en/p/';
 const CATS=['Seating','Tables','Beds','Storage','Lighting','Decor','Appliances','Kitchen'];
 const IK=[
- {id:'ps-sofabed',n:'IKEA PS 2026 3-seat sofa-bed, Skiftebo light grey-beige',c:'Seating',p:719.10,u:P+'ikea-ps-2026-3-seat-sofa-bed-skiftebo-light-grey-beige-90620350/',d:[204,102,82],s:'sofa',col:'#cfc6b5'},
- {id:'ps-chairbed',n:'IKEA PS 2026 Chair-bed, Skiftebo',c:'Seating',p:314.10,u:P+'ikea-ps-2026-chair-bed-skiftebo-bright-orange-40620376/',d:[80,90,75],ap:1,s:'sofa',col:'#e8692c',vars:[{l:'Bright orange',col:'#e8692c'},{l:'Light grey-beige',col:'#cfc6b5',u:P+'ikea-ps-2026-chair-bed-skiftebo-light-grey-beige-70620370/'}]},
- {id:'ps-chair',n:'IKEA PS 2026 Chair, Knäbäck',c:'Seating',p:107.99,u:P+'ikea-ps-2026-chair-bright-green-knaebaeck-bright-green-30617968/',d:[44,55,76],s:'chair',col:'#3c9a4c',vars:[{l:'Bright green',col:'#3c9a4c'},{l:'Bright blue',col:'#2d6cd0',u:P+'ikea-ps-2026-chair-bright-blue-knaebaeck-bright-blue-20617964/'}]},
- {id:'ps-foldchair',n:'IKEA PS 2026 Folding chair, birch blue/black red',c:'Seating',p:71.99,u:P+'ikea-ps-2026-folding-chair-birch-blue-black-red-20617959/',d:[45,51,76],s:'chair',col:'#2f5fb0',leg:'#5a1f22'},
- {id:'ps-easyinfl',n:'IKEA PS 2026 Easy chair with inflatable seat/back cushion, Knäbäck bright green',c:'Seating',p:161.10,u:P+'ikea-ps-2026-easy-chair-with-inflatable-seat-back-cushion-knaebaeck-bright-green-70623203/',d:[73,84,70],s:'easy',col:'#3c9a4c'},
- {id:'ps-easybirch',n:'IKEA PS 2026 Easy chair, birch',c:'Seating',p:89.99,u:P+'ikea-ps-2026-easy-chair-birch-80621072/',d:[50,62,67],s:'easy',col:'#d9b98a'},
- {id:'ps-stool',n:'IKEA PS 2026 Stool, height adjustable, birch/bright blue',c:'Seating',p:107.99,u:P+'ikea-ps-2026-stool-height-adjustable-birch-clear-lacquered-bright-blue-00617960/',d:[32,32,45],s:'stool',col:'#2d6cd0'},
- {id:'ps-footstool',n:'IKEA PS 2026 Footstool with storage, rattan brown-red',c:'Seating',p:161.10,u:P+'ikea-ps-2026-footstool-with-storage-rattan-brown-red-30624266/',d:[45,45,40],ap:1,s:'pouf',col:'#8c3d2c'},
- {id:'ps-bench',n:'IKEA PS 2026 Bench, pine clear lacquered, 127 cm',c:'Seating',p:179.99,u:P+'ikea-ps-2026-bench-pine-clear-lacquered-60617957/',d:[127,35,45],ap:1,s:'bench',col:'#d9b98a'},
- {id:'ps-tablegreen',n:'IKEA PS 2026 Table, green, 96 cm',c:'Tables',p:134.99,u:P+'ikea-ps-2026-table-green-60617962/',d:[96,96,76],s:'rtable',col:'#3c8a52'},
- {id:'ps-foldtable',n:'IKEA PS 2026 Table, folding, pine clear lacquered, 156×75 cm',c:'Tables',p:341.99,u:P+'ikea-ps-2026-table-folding-pine-clear-lacquered-80617961/',d:[156,75,73],s:'table',col:'#d9b98a'},
- {id:'ps-tabledrawer',n:'IKEA PS 2026 Table with drawer, pine clear lacquered, 70×70 cm',c:'Tables',p:269.99,u:P+'ikea-ps-2026-table-with-drawer-pine-clear-lacquered-40617963/',d:[70,70,74],ap:1,s:'table',col:'#d9b98a'},
- {id:'ps-set2',n:'IKEA PS 2026 Table and 2 chairs, pine/Knäbäck, 70×70 cm',c:'Tables',p:485.97,u:P+'ikea-ps-2026-table-and-2-chairs-pine-knaebaeck-bright-blue-s79647761/',d:[70,160,76],s:'set2',col:'#d9b98a',ch:'#2d6cd0',vars:[{l:'Bright blue chairs',col:'#2d6cd0'},{l:'Bright green chairs',col:'#3c9a4c'}]},
+ {id:'ps-sofabed',n:'IKEA PS 2026 3-seat sofa-bed, Skiftebo light grey-beige',c:'Seating',p:719.10,u:IKP+'ikea-ps-2026-3-seat-sofa-bed-skiftebo-light-grey-beige-90620350/',d:[204,102,82],s:'sofa',col:'#cfc6b5'},
+ {id:'ps-chairbed',n:'IKEA PS 2026 Chair-bed, Skiftebo',c:'Seating',p:314.10,u:IKP+'ikea-ps-2026-chair-bed-skiftebo-bright-orange-40620376/',d:[80,90,75],ap:1,s:'sofa',col:'#e8692c',vars:[{l:'Bright orange',col:'#e8692c'},{l:'Light grey-beige',col:'#cfc6b5',u:IKP+'ikea-ps-2026-chair-bed-skiftebo-light-grey-beige-70620370/'}]},
+ {id:'ps-chair',n:'IKEA PS 2026 Chair, Knäbäck',c:'Seating',p:107.99,u:IKP+'ikea-ps-2026-chair-bright-green-knaebaeck-bright-green-30617968/',d:[44,55,76],s:'chair',col:'#3c9a4c',vars:[{l:'Bright green',col:'#3c9a4c'},{l:'Bright blue',col:'#2d6cd0',u:IKP+'ikea-ps-2026-chair-bright-blue-knaebaeck-bright-blue-20617964/'}]},
+ {id:'ps-foldchair',n:'IKEA PS 2026 Folding chair, birch blue/black red',c:'Seating',p:71.99,u:IKP+'ikea-ps-2026-folding-chair-birch-blue-black-red-20617959/',d:[45,51,76],s:'chair',col:'#2f5fb0',leg:'#5a1f22'},
+ {id:'ps-easyinfl',n:'IKEA PS 2026 Easy chair with inflatable seat/back cushion, Knäbäck bright green',c:'Seating',p:161.10,u:IKP+'ikea-ps-2026-easy-chair-with-inflatable-seat-back-cushion-knaebaeck-bright-green-70623203/',d:[73,84,70],s:'easy',col:'#3c9a4c'},
+ {id:'ps-easybirch',n:'IKEA PS 2026 Easy chair, birch',c:'Seating',p:89.99,u:IKP+'ikea-ps-2026-easy-chair-birch-80621072/',d:[50,62,67],s:'easy',col:'#d9b98a'},
+ {id:'ps-stool',n:'IKEA PS 2026 Stool, height adjustable, birch/bright blue',c:'Seating',p:107.99,u:IKP+'ikea-ps-2026-stool-height-adjustable-birch-clear-lacquered-bright-blue-00617960/',d:[32,32,45],s:'stool',col:'#2d6cd0'},
+ {id:'ps-footstool',n:'IKEA PS 2026 Footstool with storage, rattan brown-red',c:'Seating',p:161.10,u:IKP+'ikea-ps-2026-footstool-with-storage-rattan-brown-red-30624266/',d:[45,45,40],ap:1,s:'pouf',col:'#8c3d2c'},
+ {id:'ps-bench',n:'IKEA PS 2026 Bench, pine clear lacquered, 127 cm',c:'Seating',p:179.99,u:IKP+'ikea-ps-2026-bench-pine-clear-lacquered-60617957/',d:[127,35,45],ap:1,s:'bench',col:'#d9b98a'},
+ {id:'ps-tablegreen',n:'IKEA PS 2026 Table, green, 96 cm',c:'Tables',p:134.99,u:IKP+'ikea-ps-2026-table-green-60617962/',d:[96,96,76],s:'rtable',col:'#3c8a52'},
+ {id:'ps-foldtable',n:'IKEA PS 2026 Table, folding, pine clear lacquered, 156×75 cm',c:'Tables',p:341.99,u:IKP+'ikea-ps-2026-table-folding-pine-clear-lacquered-80617961/',d:[156,75,73],s:'table',col:'#d9b98a'},
+ {id:'ps-tabledrawer',n:'IKEA PS 2026 Table with drawer, pine clear lacquered, 70×70 cm',c:'Tables',p:269.99,u:IKP+'ikea-ps-2026-table-with-drawer-pine-clear-lacquered-40617963/',d:[70,70,74],ap:1,s:'table',col:'#d9b98a'},
+ {id:'ps-set2',n:'IKEA PS 2026 Table and 2 chairs, pine/Knäbäck, 70×70 cm',c:'Tables',p:485.97,u:IKP+'ikea-ps-2026-table-and-2-chairs-pine-knaebaeck-bright-blue-s79647761/',d:[70,160,76],s:'set2',col:'#d9b98a',ch:'#2d6cd0',vars:[{l:'Bright blue chairs',col:'#2d6cd0'},{l:'Bright green chairs',col:'#3c9a4c'}]},
  {id:'ps-set4',n:'IKEA PS 2026 / VIHALS Table and 4 chairs, green/white, 96 cm',c:'Tables',p:260.95,u:'https://www.ikea.com/au/en/search/?q=IKEA%20PS%202026%20VIHALS%20table%20and%204%20chairs',d:[186,186,76],ap:1,s:'set4',col:'#3c8a52',ch:'#f2f2ee'},
- {id:'ps-sidetable',n:'IKEA PS 2026 Side table, dark red',c:'Tables',p:62.99,u:P+'ikea-ps-2026-side-table-dark-red-60621068/',d:[40,50,51],s:'table',col:'#7d1f25'},
- {id:'ps-bedside',n:'IKEA PS 2026 Bedside table, pine, flip-down door',c:'Storage',p:89.99,u:P+'ikea-ps-2026-bedside-table-pine-with-flip-down-door-70621765/',d:[30,30,50],s:'cab',col:'#d9b98a'},
- {id:'ps-shelving',n:'IKEA PS 2026 Shelving unit, pine',c:'Storage',p:404.10,u:P+'ikea-ps-2026-shelving-unit-pine-70616900/',d:[160,35,161],s:'shelf',col:'#d9b98a'},
- {id:'ps-glasscab',n:'IKEA PS 2026 Glass-door cabinet, light pink',c:'Storage',p:269.10,u:P+'ikea-ps-2026-glass-door-cabinet-light-pink-10616955/',d:[73,36,160],s:'glasscab',col:'#efb9c0'},
- {id:'ps-cabinet',n:'IKEA PS 2026 Cabinet, pine',c:'Storage',p:584.10,u:P+'ikea-ps-2026-cabinet-pine-40616949/',d:[80,46,140],s:'cab',col:'#d9b98a'},
- {id:'ps-trolley',n:'IKEA PS 2026 Trolley',c:'Storage',p:80.99,u:P+'ikea-ps-2026-trolley-beige-10621080/',d:[48,48,89],s:'trolley',col:'#d8cdb5',vars:[{l:'Beige',col:'#d8cdb5'},{l:'Blue',col:'#2d6cd0',u:P+'ikea-ps-2026-trolley-blue-90621076/'}]},
- {id:'ps-rack',n:'IKEA PS 2026 Rack with 5 hooks, solid birch',c:'Storage',p:35.99,u:P+'ikea-ps-2026-rack-with-5-hooks-solid-birch-80618710/',d:[60,8,10],ap:1,s:'rack',col:'#d9b98a',mount:'wall',el:1.6},
- {id:'ps-uplighter',n:'IKEA PS 2026 Floor uplighter, 182 cm',c:'Lighting',p:62.99,u:P+'ikea-ps-2026-floor-uplighter-dark-red-20608506/',d:[30,30,182],ap:1,s:'uplight',col:'#7d1f25',vars:[{l:'Dark red',col:'#7d1f25'},{l:'Blue',col:'#2d6cd0',u:P+'ikea-ps-2026-floor-uplighter-blue-30608520/'},{l:'Yellow',col:'#e6b92e',u:P+'ikea-ps-2026-floor-uplighter-yellow-60608533/'}]},
- {id:'ps-ledlamp',n:'IKEA PS 2026 LED portable lamp, 22 cm',c:'Lighting',p:44.99,u:P+'ikea-ps-2026-led-portable-lamp-battery-operated-dimmable-green-light-pink-10608564/',d:[14,14,22],ap:1,s:'tlamp',col:'#3c9a4c',vars:[{l:'Green / light pink',col:'#3c9a4c'},{l:'Red / light blue',col:'#c93a2e',u:P+'ikea-ps-2026-led-portable-lamp-battery-operated-dimmable-red-light-blue-20608549/'},{l:'Blue / light yellow',col:'#2d6cd0',u:P+'ikea-ps-2026-led-portable-lamp-battery-operated-dimmable-blue-light-yellow-80613576/'}]},
- {id:'ps-pendant',n:'IKEA PS 2026 Pendant lamp shade, handmade/white, 90 cm',c:'Lighting',p:35.10,u:P+'ikea-ps-2026-pendant-lamp-shade-handmade-white-90617079/',d:[90,90,110],s:'pendant',col:'#f6f3ea',mount:'ceil'},
- {id:'ps-rug',n:'IKEA PS 2026 Rug, low pile, off-white/red, 170×240 cm',c:'Decor',p:269.10,u:P+'ikea-ps-2026-rug-low-pile-off-white-red-30619401/',d:[170,240,1],s:'rug',col:'#efe9dc',acc:'#c0392b'},
- {id:'ps-mirror',n:'IKEA PS 2026 Mirror, 26×38 cm',c:'Decor',p:17.99,u:P+'ikea-ps-2026-mirror-00622792/',d:[26,2,38],s:'mirror',col:'#cfd8dc',mount:'wall',el:1.4},
- {id:'ps-clock',n:'IKEA PS 2026 Table clock, red, 38 cm',c:'Decor',p:53.99,u:P+'ikea-ps-2026-table-clock-red-00622787/',d:[25,12,38],ap:1,s:'clock',col:'#c62f2f'},
- {id:'ps-vase15',n:'IKEA PS 2026 Vase, glass/white/green pink, 15 cm',c:'Decor',p:26.99,u:P+'ikea-ps-2026-vase-glass-white-green-pink-30618562/',d:[12,12,15],ap:1,s:'vase',col:'#9fd3b5'},
- {id:'ps-vase38',n:'IKEA PS 2026 Vase, glass/blue/green, 38 cm',c:'Decor',p:62.99,u:P+'ikea-ps-2026-vase-glass-blue-green-10618558/',d:[20,20,38],ap:1,s:'vase',col:'#5b8fd6'},
- {id:'ps-walldeco3a',n:'IKEA PS 2026 Wall decoration, set of 3, pink red/blue',c:'Decor',p:11.69,u:P+'ikea-ps-2026-wall-decoration-set-of-3-pink-red-blue-30622795/',d:[80,3,25],ap:1,s:'deco',col:'#d9534f',acc:'#2d6cd0',mount:'wall',el:1.5},
- {id:'ps-walldeco3b',n:'IKEA PS 2026 Wall decoration, set of 3, green light blue/yellow',c:'Decor',p:11.69,u:P+'ikea-ps-2026-wall-decoration-set-of-3-green-light-blue-yellow-60622794/',d:[80,3,25],ap:1,s:'deco',col:'#3c9a4c',acc:'#e6b92e',mount:'wall',el:1.5},
- {id:'ps-walldecog',n:'IKEA PS 2026 Wall decoration, green, 25 cm',c:'Decor',p:4.49,u:P+'ikea-ps-2026-wall-decoration-green-70622798/',d:[25,3,25],s:'deco1',col:'#3c9a4c',mount:'wall',el:1.5}
+ {id:'ps-sidetable',n:'IKEA PS 2026 Side table, dark red',c:'Tables',p:62.99,u:IKP+'ikea-ps-2026-side-table-dark-red-60621068/',d:[40,50,51],s:'table',col:'#7d1f25'},
+ {id:'ps-bedside',n:'IKEA PS 2026 Bedside table, pine, flip-down door',c:'Storage',p:89.99,u:IKP+'ikea-ps-2026-bedside-table-pine-with-flip-down-door-70621765/',d:[30,30,50],s:'cab',col:'#d9b98a'},
+ {id:'ps-shelving',n:'IKEA PS 2026 Shelving unit, pine',c:'Storage',p:404.10,u:IKP+'ikea-ps-2026-shelving-unit-pine-70616900/',d:[160,35,161],s:'shelf',col:'#d9b98a'},
+ {id:'ps-glasscab',n:'IKEA PS 2026 Glass-door cabinet, light pink',c:'Storage',p:269.10,u:IKP+'ikea-ps-2026-glass-door-cabinet-light-pink-10616955/',d:[73,36,160],s:'glasscab',col:'#efb9c0'},
+ {id:'ps-cabinet',n:'IKEA PS 2026 Cabinet, pine',c:'Storage',p:584.10,u:IKP+'ikea-ps-2026-cabinet-pine-40616949/',d:[80,46,140],s:'cab',col:'#d9b98a'},
+ {id:'ps-trolley',n:'IKEA PS 2026 Trolley',c:'Storage',p:80.99,u:IKP+'ikea-ps-2026-trolley-beige-10621080/',d:[48,48,89],s:'trolley',col:'#d8cdb5',vars:[{l:'Beige',col:'#d8cdb5'},{l:'Blue',col:'#2d6cd0',u:IKP+'ikea-ps-2026-trolley-blue-90621076/'}]},
+ {id:'ps-rack',n:'IKEA PS 2026 Rack with 5 hooks, solid birch',c:'Storage',p:35.99,u:IKP+'ikea-ps-2026-rack-with-5-hooks-solid-birch-80618710/',d:[60,8,10],ap:1,s:'rack',col:'#d9b98a',mount:'wall',el:1.6},
+ {id:'ps-uplighter',n:'IKEA PS 2026 Floor uplighter, 182 cm',c:'Lighting',p:62.99,u:IKP+'ikea-ps-2026-floor-uplighter-dark-red-20608506/',d:[30,30,182],ap:1,s:'uplight',col:'#7d1f25',vars:[{l:'Dark red',col:'#7d1f25'},{l:'Blue',col:'#2d6cd0',u:IKP+'ikea-ps-2026-floor-uplighter-blue-30608520/'},{l:'Yellow',col:'#e6b92e',u:IKP+'ikea-ps-2026-floor-uplighter-yellow-60608533/'}]},
+ {id:'ps-ledlamp',n:'IKEA PS 2026 LED portable lamp, 22 cm',c:'Lighting',p:44.99,u:IKP+'ikea-ps-2026-led-portable-lamp-battery-operated-dimmable-green-light-pink-10608564/',d:[14,14,22],ap:1,s:'tlamp',col:'#3c9a4c',vars:[{l:'Green / light pink',col:'#3c9a4c'},{l:'Red / light blue',col:'#c93a2e',u:IKP+'ikea-ps-2026-led-portable-lamp-battery-operated-dimmable-red-light-blue-20608549/'},{l:'Blue / light yellow',col:'#2d6cd0',u:IKP+'ikea-ps-2026-led-portable-lamp-battery-operated-dimmable-blue-light-yellow-80613576/'}]},
+ {id:'ps-pendant',n:'IKEA PS 2026 Pendant lamp shade, handmade/white, 90 cm',c:'Lighting',p:35.10,u:IKP+'ikea-ps-2026-pendant-lamp-shade-handmade-white-90617079/',d:[90,90,110],s:'pendant',col:'#f6f3ea',mount:'ceil'},
+ {id:'ps-rug',n:'IKEA PS 2026 Rug, low pile, off-white/red, 170×240 cm',c:'Decor',p:269.10,u:IKP+'ikea-ps-2026-rug-low-pile-off-white-red-30619401/',d:[170,240,1],s:'rug',col:'#efe9dc',acc:'#c0392b'},
+ {id:'ps-mirror',n:'IKEA PS 2026 Mirror, 26×38 cm',c:'Decor',p:17.99,u:IKP+'ikea-ps-2026-mirror-00622792/',d:[26,2,38],s:'mirror',col:'#cfd8dc',mount:'wall',el:1.4},
+ {id:'ps-clock',n:'IKEA PS 2026 Table clock, red, 38 cm',c:'Decor',p:53.99,u:IKP+'ikea-ps-2026-table-clock-red-00622787/',d:[25,12,38],ap:1,s:'clock',col:'#c62f2f'},
+ {id:'ps-vase15',n:'IKEA PS 2026 Vase, glass/white/green pink, 15 cm',c:'Decor',p:26.99,u:IKP+'ikea-ps-2026-vase-glass-white-green-pink-30618562/',d:[12,12,15],ap:1,s:'vase',col:'#9fd3b5'},
+ {id:'ps-vase38',n:'IKEA PS 2026 Vase, glass/blue/green, 38 cm',c:'Decor',p:62.99,u:IKP+'ikea-ps-2026-vase-glass-blue-green-10618558/',d:[20,20,38],ap:1,s:'vase',col:'#5b8fd6'},
+ {id:'ps-walldeco3a',n:'IKEA PS 2026 Wall decoration, set of 3, pink red/blue',c:'Decor',p:11.69,u:IKP+'ikea-ps-2026-wall-decoration-set-of-3-pink-red-blue-30622795/',d:[80,3,25],ap:1,s:'deco',col:'#d9534f',acc:'#2d6cd0',mount:'wall',el:1.5},
+ {id:'ps-walldeco3b',n:'IKEA PS 2026 Wall decoration, set of 3, green light blue/yellow',c:'Decor',p:11.69,u:IKP+'ikea-ps-2026-wall-decoration-set-of-3-green-light-blue-yellow-60622794/',d:[80,3,25],ap:1,s:'deco',col:'#3c9a4c',acc:'#e6b92e',mount:'wall',el:1.5},
+ {id:'ps-walldecog',n:'IKEA PS 2026 Wall decoration, green, 25 cm',c:'Decor',p:4.49,u:IKP+'ikea-ps-2026-wall-decoration-green-70622798/',d:[25,3,25],s:'deco1',col:'#3c9a4c',mount:'wall',el:1.5}
 ].map(o=>Object.assign(o,{src:'ikea'}));
 const GEN=[
  {id:'g-tv43',n:'Flat-screen TV 43″ (wall-mounted)',c:'Appliances',d:[97,6,57],s:'tv',mount:'wall',el:1.0},
@@ -413,73 +388,115 @@ function floorCanvas(fid,size){
 }
 function floorTex(fid){if(!texCache[fid]){const t=new THREE.CanvasTexture(floorCanvas(fid,512));t.wrapS=t.wrapT=THREE.RepeatWrapping;t.encoding=THREE.sRGBEncoding;t.anisotropy=renderer.capabilities.getMaxAnisotropy();texCache[fid]=t;}return texCache[fid];}
 
-/* ================= BUILD THE FLAT ================= */
+/* ================= BUILD THE HOME ================= */
 const flat=new THREE.Group();scene.add(flat);
-let wallGroup=new THREE.Group();flat.add(wallGroup);
-const floorMeshes={};let labelGroup=new THREE.Group();flat.add(labelGroup);
-const DEFAULT_FIN={floor:{},tile:{},wall:'#f4f2ec'};
-ROOMS.forEach(r=>{DEFAULT_FIN.floor[r.id]=r.out?'terracotta':'white-marble';DEFAULT_FIN.tile[r.id]=r.out?'1x1':'2x2';});
-let fin=JSON.parse(JSON.stringify(DEFAULT_FIN));
-let wallMat=new THREE.MeshStandardMaterial({color:new THREE.Color(fin.wall).convertSRGBToLinear(),roughness:0.95});
+let wallGroup=new THREE.Group(),labelGroup=new THREE.Group(),staticGroup=new THREE.Group();flat.add(wallGroup,labelGroup,staticGroup);
+let floorMeshes={},DEFAULT_FIN,fin,wallCap=1.2,labelsOn=true;
+function defaultFin(){const d={floor:{},tile:{},wall:'#f4f2ec'};ROOMS.forEach(r=>{d.floor[r.id]=r.out?'terracotta':'white-marble';d.tile[r.id]=r.out?'1x1':'2x2';});return d;}
+const wallMat=new THREE.MeshStandardMaterial({color:new THREE.Color('#f4f2ec').convertSRGBToLinear(),roughness:0.95});
 const capMat=new THREE.MeshStandardMaterial({color:0x8d8a84,roughness:0.9});
 const glassMat=new THREE.MeshStandardMaterial({color:0x9cc7e6,transparent:true,opacity:0.32,roughness:0.1,metalness:0.1});
-let wallCap=1.2;
-
-// base slab
-{const s=new THREE.Mesh(new THREE.BoxGeometry(XE/1000,0.15,YN/1000),mat('#9a968f'));s.position.set(0,-0.075,0);s.receiveShadow=true;flat.add(s);
- // slab only where the flat is: cut out the notch east of bedroom 2 with a scene-coloured block is messy; instead build slab from two rects
- flat.remove(s);
- [[0,XE,0,mid_y1+E],[0,bed2_x1+E,mid_y1,YN]].forEach(r=>{const m=new THREE.Mesh(new THREE.BoxGeometry((r[1]-r[0])/1000,0.15,(r[3]-r[2])/1000),mat('#d8d4cc'));m.position.set(wx((r[0]+r[1])/2),-0.076,wz((r[2]+r[3])/2));m.receiveShadow=true;flat.add(m);});}
-
+const frameMat=new THREE.MeshStandardMaterial({color:new THREE.Color('#b7bcc1').convertSRGBToLinear(),roughness:0.35,metalness:0.55});
+const louvMat=new THREE.MeshStandardMaterial({color:0xdfe9ee,transparent:true,opacity:0.7,roughness:0.4});
+const arcMat=new THREE.MeshBasicMaterial({color:0x6f8fb0,transparent:true,opacity:0.7,side:THREE.DoubleSide});
+function clearGroup(g){g.traverse(o=>{if(o.geometry)o.geometry.dispose();});while(g.children.length)g.remove(g.children[0]);}
+function boxAt(g,w,h,d,x,y,z,m,shadow){const me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);me.position.set(x,y,z);me.castShadow=shadow!==false;me.receiveShadow=true;g.add(me);return me;}
+function buildStatic(){
+  clearGroup(staticGroup);
+  const slabM=mat('#d8d4cc');
+  WALLS.map(w=>w.r).concat(...ROOMS.map(r=>r.rects)).forEach(r=>{const m=boxAt(staticGroup,(r[1]-r[0])/1000,0.15,(r[3]-r[2])/1000,wx((r[0]+r[1])/2),-0.076,wz((r[2]+r[3])/2),slabM,false);m.receiveShadow=true;});
+  FIXTURES.forEach(f=>{const r=f.r,w=(r[1]-r[0])/1000,d=(r[3]-r[2])/1000,h=(f.h||900)/1000,cx=wx((r[0]+r[1])/2),cz=wz((r[2]+r[3])/2);
+    if(f.type==='counter'){boxAt(staticGroup,w-0.02,h-0.14,d-0.02,cx,0.1+(h-0.14)/2,cz,mat('#e7e1d6',{roughness:.6}));boxAt(staticGroup,w-0.06,0.1,d-0.06,cx,0.05,cz,mat('#3a3836'));
+      boxAt(staticGroup,w,0.04,d,cx,h-0.02,cz,mat('#2b2a29',{roughness:.25}));
+      if(f.sink){boxAt(staticGroup,0.42,0.012,0.55,wx(f.sink[0]),h+0.006,wz(f.sink[1]),mat('#c7cbcf',{metalness:.7,roughness:.25}),false);}
+      if(f.hob){boxAt(staticGroup,0.45,0.012,0.6,wx(f.hob[0]),h+0.006,wz(f.hob[1]),mat('#111'),false);
+        [[-0.1,-0.13],[-0.1,0.13],[0.1,0]].forEach(p=>{const t=new THREE.Mesh(new THREE.TorusGeometry(0.07,0.012,8,20),mat('#555'));t.rotation.x=Math.PI/2;t.position.set(wx(f.hob[0])+p[0],h+0.016,wz(f.hob[1])+p[1]);staticGroup.add(t);});}}
+    else boxAt(staticGroup,w,h,d,cx,h/2,cz,mat(f.color||'#cfc8bb'));});
+  const c=P.compass;if(c){const pad=0.9,dark=false;
+    [[c.up,0,-SPANZ/2-pad,0],[c.down,0,SPANZ/2+pad,0],[c.left,-SPANX/2-pad,0,Math.PI/2],[c.right,SPANX/2+pad,0,-Math.PI/2]].forEach(([t,x,z,a])=>{if(!t)return;
+      const m=new THREE.Mesh(new THREE.PlaneGeometry(1.8,0.56),new THREE.MeshBasicMaterial({map:textTex([t.toUpperCase()],dark,true),transparent:true,depthWrite:false}));
+      m.rotation.set(-Math.PI/2,0,a);m.position.set(x,0.01,z);staticGroup.add(m);});}
+}
 function buildFloors(){
-  ROOMS.forEach(r=>{(floorMeshes[r.id]||[]).forEach(m=>{flat.remove(m);m.material.dispose();});floorMeshes[r.id]=[];
-    const fid=fin.floor[r.id],tile=TILES.find(t=>t.id===fin.tile[r.id])||TILES[1];
+  Object.values(floorMeshes).forEach(list=>list.forEach(m=>{flat.remove(m);m.geometry.dispose();m.material.dispose();}));floorMeshes={};
+  ROOMS.forEach(r=>{floorMeshes[r.id]=[];
+    const fid=fin.floor[r.id]||'white-marble',tile=TILES.find(t=>t.id===fin.tile[r.id])||TILES[1];
     r.rects.forEach(rc=>{const w=(rc[1]-rc[0])/1000,d=(rc[3]-rc[2])/1000;
       const tex=floorTex(fid).clone();tex.needsUpdate=true;
       const tw=fid==='wood'?1.2192:tile.w,td=fid==='wood'?0.2032:tile.d;
       tex.repeat.set(w/(2*tw),d/(2*td));tex.offset.set(((rc[0]/1000)/(2*tw))%1,((rc[2]/1000)/(2*td))%1);
-      const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshStandardMaterial({map:tex,roughness:fid.includes('marble')||fid==='statuario'||fid.includes('granite')?0.35:0.8,metalness:0}));
+      const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshStandardMaterial({map:tex,roughness:/marble|statuario|granite/.test(fid)?0.35:0.8,metalness:0}));
       m.rotation.x=-Math.PI/2;m.position.set(wx((rc[0]+rc[1])/2),0.002,wz((rc[2]+rc[3])/2));m.receiveShadow=true;flat.add(m);floorMeshes[r.id].push(m);});
   });
 }
 function wallPieces(w){
-  const [xa,xb,ya,yb,h]=w;const horiz=(xb-xa)>=(yb-ya);const a0=horiz?xa:ya,a1=horiz?xb:yb;
-  const ops=OPENINGS.filter(o=>o.r[0]<xb&&o.r[1]>xa&&o.r[2]<yb&&o.r[3]>ya).map(o=>({s:Math.max(a0,horiz?o.r[0]:o.r[2]),e:Math.min(a1,horiz?o.r[1]:o.r[3]),z0:o.z[0],z1:Math.min(o.z[1],h),glass:o.glass})).sort((p,q)=>p.s-q.s);
-  const pcs=[],glass=[];let cur=a0;
-  ops.forEach(o=>{if(o.s>cur)pcs.push([cur,o.s,0,h]);if(o.z0>0)pcs.push([o.s,o.e,0,o.z0]);if(o.z1<h)pcs.push([o.s,o.e,o.z1,h]);if(o.glass)glass.push([o.s,o.e,o.z0,o.z1]);cur=Math.max(cur,o.e);});
+  const [xa,xb,ya,yb]=w.r,h=w.h||H,hz=isHoriz(w.r),a0=hz?xa:ya,a1=hz?xb:yb;
+  const ops=OPENINGS.filter(o=>o.wall===w).map(o=>({s:Math.max(a0,hz?o.r[0]:o.r[2]),e:Math.min(a1,hz?o.r[1]:o.r[3]),z0:o.z[0],z1:Math.min(o.z[1],h)})).sort((p,q)=>p.s-q.s);
+  const pcs=[];let cur=a0;
+  ops.forEach(o=>{if(o.s>cur)pcs.push([cur,o.s,0,h]);if(o.z0>0)pcs.push([o.s,o.e,0,o.z0]);if(o.z1<h)pcs.push([o.s,o.e,o.z1,h]);cur=Math.max(cur,o.e);});
   if(cur<a1)pcs.push([cur,a1,0,h]);
-  const toBox=(p)=>horiz?[p[0],p[1],ya,yb,p[2],p[3]]:[xa,xb,p[0],p[1],p[2],p[3]];
-  return {pcs:pcs.map(toBox),glass:glass.map(toBox),horiz,ya,yb,xa,xb};
+  return pcs.map(p=>hz?[p[0],p[1],ya,yb,p[2],p[3]]:[xa,xb,p[0],p[1],p[2],p[3]]);
+}
+function railGroup(w){const [xa,xb,ya,yb]=w.r,hz=isHoriz(w.r),L=(hz?xb-xa:yb-ya)/1000,T=(hz?yb-ya:xb-xa)/1000,h=(w.h||1050)/1000;
+  const g=new THREE.Group();g.position.set(wx((xa+xb)/2),0,wz((ya+yb)/2));if(!hz)g.rotation.y=Math.PI/2;
+  boxAt(g,L,0.1,T,0,0.05,0,wallMat);boxAt(g,L,h-0.16,0.012,0,0.1+(h-0.16)/2,0,glassMat,false);boxAt(g,L,0.05,0.06,0,h-0.025,0,frameMat);
+  const n=Math.max(2,Math.round(L/1.2));for(let i=0;i<=n;i++)boxAt(g,0.04,h-0.1,0.04,-L/2+0.02+i*(L-0.04)/n,0.1+(h-0.1)/2,0,frameMat);
+  return g;}
+function openingGroup(o,cap){
+  const wr=o.wall.r,hz=isHoriz(wr),a0=hz?o.r[0]:o.r[2],a1=hz?o.r[1]:o.r[3],t0=hz?wr[2]:wr[0],t1=hz?wr[3]:wr[1];
+  const W=(a1-a0)/1000,T=(t1-t0)/1000,am=(a0+a1)/2,tm=(t0+t1)/2,z0=o.z[0]/1000,z1=Math.min(o.z[1],H)/1000;
+  const g=new THREE.Group();if(hz)g.position.set(wx(am),0,wz(tm));else{g.position.set(wx(tm),0,wz(am));g.rotation.y=Math.PI/2;}
+  const nS=hz?-1:1; // local +z = plan +normal * nS
+  const bx=(w,h0,h1,d,x,z,m,sh)=>{const top=Math.min(h1,cap);if(top-h0<0.004||w<=0)return null;return boxAt(g,w,top-h0,d,x,(h0+top)/2,z,m,sh);};
+  const ft=0.05,fd=0.07;
+  const frame=()=>{bx(W,z1-ft,z1,fd,0,0,frameMat);bx(W,z0,z0+(z0>0?ft:0.02),fd,0,0,frameMat);bx(ft,z0,z1,fd,-W/2+ft/2,0,frameMat);bx(ft,z0,z1,fd,W/2-ft/2,0,frameMat);};
+  const pane=(cx,pw,zoff,y0,y1)=>{bx(pw,y0,y0+0.05,0.035,cx,zoff,frameMat);bx(pw,y1-0.05,y1,0.035,cx,zoff,frameMat);bx(0.035,y0,y1,0.035,cx-pw/2+0.0175,zoff,frameMat);bx(0.035,y0,y1,0.035,cx+pw/2-0.0175,zoff,frameMat);bx(pw-0.06,y0+0.05,y1-0.05,0.008,cx,zoff,glassMat,false);};
+  if(o.type==='door'){
+    const lw=W-0.03,lh=Math.min(z1,2.05),s=o.swing*nS,hx=o.hinge==='a'?-W/2:W/2,inn=o.hinge==='a'?1:-1,leaf=mat(o.color||'#a07a55',{roughness:.6}),cas=mat('#ebe6dc',{roughness:.7});
+    bx(0.045,0,z1,T+0.02,-W/2+0.0225,0,cas);bx(0.045,0,z1,T+0.02,W/2-0.0225,0,cas);
+    bx(0.04,0,lh,lw,hx+inn*0.03,s*(T/2+lw/2),leaf);bx(0.06,0.98,1.02,0.025,hx+inn*0.03+inn*0.035,s*(T/2+lw-0.08),mat('#bfc3c7',{metalness:.7,roughness:.3}),false);
+    const norm=a=>((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI),t1a=norm(inn>0?0:Math.PI),t2a=norm(s>0?-Math.PI/2:Math.PI/2);
+    const start=Math.abs(norm(t2a-t1a)-Math.PI/2)<1e-3?t1a:t2a;
+    const ring=new THREE.Mesh(new THREE.RingGeometry(lw-0.014,lw,40,1,start,Math.PI/2),arcMat);ring.rotation.x=-Math.PI/2;ring.position.set(hx,0.006,s*T/2);g.add(ring);
+  } else if(o.type==='slide2'||o.type==='slide3'||o.type==='slide'){
+    frame();const n=o.type==='slide3'?3:2,inner=W-2*ft,pw=inner/n+0.04;
+    for(let i=0;i<n;i++){const cx=-inner/2+inner/n*(i+0.5);pane(Math.max(-W/2+ft+pw/2,Math.min(W/2-ft-pw/2,cx)),pw,(i%2?0.02:-0.02),z0+ft,z1-ft);}
+  } else if(o.type==='pivot'){
+    frame();const n=Math.max(1,Math.round(W/0.8)),inner=W-2*ft,pw=inner/n;
+    for(let i=0;i<n;i++){const cx=-inner/2+pw*(i+0.5);pane(cx,pw-0.01,0,z0+ft,z1-ft);bx(0.012,z0+ft,z1-ft,0.05,cx,0,frameMat);}
+  } else if(o.type==='louvre'){
+    frame();const hh=z1-z0-2*ft,n=Math.max(4,Math.round(hh/0.085));
+    for(let i=0;i<n;i++){const y=z0+ft+(i+0.5)*hh/n;if(y+0.04>cap)continue;const sl=boxAt(g,W-2*ft,0.006,0.09,0,y,0,louvMat,false);sl.rotation.x=0.5;}
+  }
+  if(o.proj){const k=planInRoom(hz?am:tm+((t1-t0)/2+200),hz?tm+((t1-t0)/2+200):am)?-1:1,zs=k*nS,zc=zs*(T/2+0.15);
+    bx(W+0.3,z0-0.075,z0,0.3,0,zc,wallMat);bx(W+0.3,z1,z1+0.075,0.3,0,zc,wallMat);bx(0.075,z0,z1,0.3,-(W/2+0.1125),zc,wallMat);bx(0.075,z0,z1,0.3,W/2+0.1125,zc,wallMat);}
+  return g;
 }
 function buildWalls(){
-  flat.remove(wallGroup);wallGroup.traverse(o=>{if(o.geometry)o.geometry.dispose();});wallGroup=new THREE.Group();flat.add(wallGroup);
-  const capMm=wallCap*1000;
-  WALLS.forEach(w=>{const wp=wallPieces(w);
-    wp.pcs.forEach(b=>{const z0=b[4],z1=Math.min(b[5],capMm);if(z1-z0<1)return;
-      const m=new THREE.Mesh(new THREE.BoxGeometry((b[1]-b[0])/1000,(z1-z0)/1000,(b[3]-b[2])/1000),wallMat);
-      m.position.set(wx((b[0]+b[1])/2),(z0+z1)/2000,wz((b[2]+b[3])/2));m.castShadow=true;m.receiveShadow=true;wallGroup.add(m);
-      if(z1<b[5]&&z1===capMm){const c=new THREE.Mesh(new THREE.BoxGeometry((b[1]-b[0])/1000+0.001,0.004,(b[3]-b[2])/1000+0.001),capMat);c.position.set(m.position.x,z1/1000+0.002,m.position.z);wallGroup.add(c);}
-    });
-    wp.glass.forEach(b=>{const z1=Math.min(b[5],capMm);if(z1-b[4]<1)return;const thin=0.02;
-      const gx=wp.horiz?(b[1]-b[0])/1000:thin,gz=wp.horiz?thin:(b[3]-b[2])/1000;
-      const g=new THREE.Mesh(new THREE.BoxGeometry(gx,(z1-b[4])/1000,gz),glassMat);g.position.set(wx((b[0]+b[1])/2),(b[4]+z1)/2000,wz((b[2]+b[3])/2));wallGroup.add(g);});
+  clearGroup(wallGroup);const capMm=wallCap*1000;
+  WALLS.forEach(w=>{
+    if(w.kind==='rail'){wallGroup.add(railGroup(w));return;}
+    wallPieces(w).forEach(b=>{const z0=b[4],z1=Math.min(b[5],capMm);if(z1-z0<1)return;
+      const m=boxAt(wallGroup,(b[1]-b[0])/1000,(z1-z0)/1000,(b[3]-b[2])/1000,wx((b[0]+b[1])/2),(z0+z1)/2000,wz((b[2]+b[3])/2),wallMat);
+      if(z1<b[5]&&z1===capMm)boxAt(wallGroup,(b[1]-b[0])/1000+0.001,0.004,(b[3]-b[2])/1000+0.001,m.position.x,z1/1000+0.002,m.position.z,capMat,false);});
   });
+  OPENINGS.forEach(o=>wallGroup.add(openingGroup(o,wallCap)));
 }
-function textTex(lines,dark){const cv=document.createElement('canvas');cv.width=512;cv.height=160;const g=cv.getContext('2d');
+function textTex(lines,dark,single){const cv=document.createElement('canvas');cv.width=512;cv.height=160;const g=cv.getContext('2d');
   g.textAlign='center';g.fillStyle=dark?'rgba(255,255,255,.92)':'rgba(30,36,33,.85)';
-  g.font='600 54px "Space Grotesk", "Segoe UI", sans-serif';g.fillText(lines[0],256,70);
-  if(lines[1]){g.font='400 40px "IBM Plex Mono", Consolas, monospace';g.fillStyle=dark?'rgba(255,255,255,.75)':'rgba(30,36,33,.6)';g.fillText(lines[1],256,128);}
+  if(single){g.font='600 64px "Space Grotesk", "Segoe UI", sans-serif';g.fillStyle='rgba(120,128,124,.9)';g.fillText(lines[0],256,102);}
+  else{g.font='600 54px "Space Grotesk", "Segoe UI", sans-serif';g.fillText(lines[0],256,70);
+  if(lines[1]){g.font='400 40px "IBM Plex Mono", Consolas, monospace';g.fillStyle=dark?'rgba(255,255,255,.75)':'rgba(30,36,33,.6)';g.fillText(lines[1],256,128);}}
   const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t;}
 function buildLabels(){
-  flat.remove(labelGroup);labelGroup=new THREE.Group();flat.add(labelGroup);labelGroup.visible=labelsOn;
-  ROOMS.forEach(r=>{if(r.id==='passage')return;const [a,b,c,d]=r.r;const w=(b-a)/1000,dd=(d-c)/1000;
+  clearGroup(labelGroup);labelGroup.visible=labelsOn;
+  ROOMS.forEach(r=>{if(r.label===false)return;const [a,b,c,d]=r.r;const w=(b-a)/1000,dd=(d-c)/1000;
     const dark=['black-granite','grey-granite','wood','terracotta'].includes(fin.floor[r.id]);
     const lw=Math.min(w*0.9,r.out?1.6:2.0),lh=lw*160/512;
     const m=new THREE.Mesh(new THREE.PlaneGeometry(lw,lh),new THREE.MeshBasicMaterial({map:textTex([r.name,r.size],dark),transparent:true,depthWrite:false}));
-    m.rotation.x=-Math.PI/2;m.position.set(wx((a+b)/2),0.006,wz((c+d)/2)+(dd>2.5?dd*0.18:0));m.renderOrder=1;labelGroup.add(m);});
+    m.rotation.x=-Math.PI/2;m.position.set(wx((a+b)/2),0.008,wz((c+d)/2)+(dd>2.5?dd*0.18:0));m.renderOrder=1;labelGroup.add(m);});
 }
-let labelsOn=true;
-buildFloors();buildWalls();buildLabels();
+function buildFlat(){buildStatic();buildFloors();buildWalls();buildLabels();}
 
 /* ================= FURNITURE BUILDERS (metres; front faces +z; origin at floor centre) ================= */
 function add(g,geo,m,x,y,z,cast){const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=cast!==false;o.receiveShadow=true;g.add(o);return o;}
@@ -577,7 +594,6 @@ function buildObj(def,variant){
 /* ================= ITEMS ================= */
 let items=[],sel=null,uidN=1,view='3d';
 function footprint(it){const [w,d]=it.def.d.map(v=>v/100);const a=it.r*Math.PI/180;return{c:[it.x,it.z],ax:[[Math.cos(a),-Math.sin(a)],[Math.sin(a),Math.cos(a)]],h:[w/2,d/2]};}
-const WALLR=WALLS.map(w=>({x0:wx(w[0]),x1:wx(w[1]),z0:wz(w[3]),z1:wz(w[2])}));
 function obbVsRect(f,r,tol){
   const rc=[(r.x0+r.x1)/2,(r.z0+r.z1)/2],rh=[(r.x1-r.x0)/2-tol,(r.z1-r.z0)/2-tol];
   const hx=f.h[0]-tol,hz=f.h[1]-tol;if(hx<=0||hz<=0)return false;
@@ -591,6 +607,7 @@ function status(it){
   if(it.def.mount==='ceil')return roomAt(it.x,it.z)?{ok:true,t:'Fits'}:{ok:false,t:'Outside the flat'};
   if(!roomAt(it.x,it.z))return{ok:false,t:'Outside the flat'};
   const f=footprint(it);for(const r of WALLR)if(obbVsRect(f,r,0.012))return{ok:false,t:'Overlaps a wall or doorway'};
+  if(it.e<2.0&&it.def.s!=='rug'){for(const r of SWINGR)if(obbVsRect(f,r,0.02))return{ok:false,t:'Blocks a door from opening'};}
   return{ok:true,t:'Fits'};
 }
 function snapWall(it){
@@ -658,7 +675,7 @@ addEventListener('keydown',e=>{
 
 /* ================= CATALOGUE UI ================= */
 let srcF='all',catF='all';
-$('#room').innerHTML=ROOMS.filter(r=>r.id!=='passage').map(r=>`<option value="${r.id}">${esc(r.name)}${r.size?' · '+r.size:''}</option>`).join('');
+function fillRoomMenus(){$('#room').innerHTML=ROOMS.filter(r=>r.id!=='passage').map(r=>`<option value="${r.id}">${esc(r.name)}${r.size?' · '+r.size:''}</option>`).join('');scopeSel.innerHTML='<option value="indoor">All indoor rooms</option><option value="all">Every room, incl. outdoor areas</option>'+ROOMS.filter(r=>r.label!==false).map(r=>`<option value="${r.id}">${esc(r.name)}${r.size?' · '+r.size:''}</option>`).join('');}
 $('#room').onchange=()=>{const r=ROOMS.find(x=>x.id===$('#room').value);if(r&&view==='eye')eyeView(r);};
 function chips(el,opts,get,set){el.innerHTML=opts.map(o=>`<button class="chip" data-v="${o[0]}" aria-pressed="${get()===o[0]}">${o[1]}</button>`).join('');
   el.querySelectorAll('button').forEach(b=>b.onclick=()=>{set(b.dataset.v);el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===get()));renderCat();});}
@@ -679,7 +696,7 @@ renderCat();
 
 /* ================= FINISHES UI ================= */
 const scopeSel=$('#fscope');
-scopeSel.innerHTML='<option value="indoor">All indoor rooms</option><option value="all">Every room, incl. terrace &amp; sitout</option>'+ROOMS.map(r=>`<option value="${r.id}">${esc(r.name)}${r.size?' · '+r.size:''}</option>`).join('');
+
 function scopeRooms(){const v=scopeSel.value;return v==='indoor'?ROOMS.filter(r=>!r.out):v==='all'?ROOMS:ROOMS.filter(r=>r.id===v);}
 function renderFin(){
   const rs=scopeRooms();const cur=rs.every(r=>fin.floor[r.id]===fin.floor[rs[0].id])?fin.floor[rs[0].id]:null;
@@ -710,53 +727,35 @@ function renderList(){
   $('#t-list').textContent=`List & cost (${items.length})`;
 }
 
-/* ================= SAVE / LOAD ================= */
-const KEY='flat9-planner-v1';
-function stateObj(){return{v:1,items:items.map(i=>({id:i.id,x:+i.x.toFixed(3),z:+i.z.toFixed(3),r:Math.round(i.r),e:+i.e.toFixed(3),vi:i.vi})),fin};}
-let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(stateObj()));}catch(_){}},250);}
+/* ================= SAVE / LOAD (one saved layout per home, in this browser) ================= */
+const KEYP='home-planner-v2:';
+function stateObj(){return{v:2,p:P.id,items:items.map(i=>({id:i.id,x:+i.x.toFixed(3),z:+i.z.toFixed(3),r:Math.round(i.r),e:+i.e.toFixed(3),vi:i.vi})),fin};}
+function saveNow(){try{localStorage.setItem(KEYP+P.id,JSON.stringify(stateObj()));localStorage.setItem(KEYP+'last',P.id);}catch(_){}}
+let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(saveNow,250);}
 function loadState(s){
   items.forEach(i=>scene.remove(i.obj));items=[];select(null);
   (s.items||[]).forEach(o=>makeItem(o.id,o.x,o.z,o.r,o.e,o.vi));
-  if(s.fin&&s.fin.floor){fin={floor:Object.assign({},DEFAULT_FIN.floor,s.fin.floor),tile:Object.assign({},DEFAULT_FIN.tile,s.fin.tile||{}),wall:s.fin.wall||DEFAULT_FIN.wall};}
+  const d=defaultFin();fin=(s.fin&&s.fin.floor)?{floor:Object.assign(d.floor,s.fin.floor),tile:Object.assign(d.tile,s.fin.tile||{}),wall:s.fin.wall||d.wall}:d;
   wallMat.color.set(new THREE.Color(fin.wall).convertSRGBToLinear());buildFloors();buildLabels();renderFin();renderList();
 }
-function sample(){
-  const R=id=>ROOMS.find(r=>r.id===id).m;const L=R('living'),K=R('kitchen'),MB=R('mbed'),B2=R('bed2');
-  const pX=wx(kit_x0+3*F),pX1=wx(kit_x1); // partition span (living north wall, east part)
-  const s=[
-   ['ps-sofabed',(pX+pX1)/2,L[3]-0.52,180],
-   ['ps-rug',(pX+pX1)/2,(L[2]+L[3])/2+0.05,90],
-   ['g-tvunit',(pX+pX1)/2,L[2]+0.2,0],
-   ['g-tv55',(pX+pX1)/2,L[2]+0.03,0,0.95],
-   ['g-ac',(pX+pX1)/2,L[3]-0.115,180,2.15],
-   ['ps-easybirch',L[0]+0.45,L[2]+0.5,45],
-   ['ps-uplighter',L[0]+0.2,L[2]+0.2,0],
-   ['ps-sidetable',(pX+pX1)/2-1.3,L[3]-0.3,0],
-   ['g-fan',(L[0]+L[1])/2,(L[2]+L[3])/2,0],
-   ['g-platform240',K[1]-0.3,(K[2]+K[3])/2,270],
-   ['g-fridge2',K[1]-1.0,K[2]+0.37,0],
-   ['ps-set4',K[0]+1.55,(K[2]+K[3])/2+0.05,0],
-   ['ps-pendant',K[0]+1.55,(K[2]+K[3])/2+0.05,0],
-   ['g-queen',MB[0]+1.07,(MB[2]+MB[3])/2+0.2,90],
-   ['ps-bedside',MB[0]+0.16,(MB[2]+MB[3])/2+0.2-0.98,90],
-   ['ps-bedside',MB[0]+0.16,(MB[2]+MB[3])/2+0.2+0.98,90],
-   ['g-ward3',MB[1]-0.3,MB[2]+2.0,270],
-   ['g-ac',(MB[0]+MB[1])/2-0.4,MB[2]+0.115,0,2.15],
-   ['g-fan',(MB[0]+MB[1])/2,(MB[2]+MB[3])/2,0],
-   ['g-single',B2[1]-0.99,B2[2]+1.6,270],
-   ['g-desk',B2[0]+0.32,B2[2]+1.0,90],
-   ['ps-chair',B2[0]+0.85,B2[2]+1.0,270]
-  ];
-  return{v:1,items:s.map(a=>({id:a[0],x:a[1],z:a[2],r:a[3],e:a[4]!=null?a[4]:defElev(BYID[a[0]]),vi:0})),fin:JSON.parse(JSON.stringify(DEFAULT_FIN))};
+function sample(){return{v:2,p:P.id,items:(P.sample||[]).filter(a=>BYID[a.id]).map(a=>({id:a.id,x:wx(a.x),z:wz(a.y),r:a.r||0,e:a.e!=null?a.e:defElev(BYID[a.id]),vi:0})),fin:defaultFin()};}
+function savedFor(id){try{const s=JSON.parse(localStorage.getItem(KEYP+id)||'null');return s&&s.v===2?s:null;}catch(_){return null;}}
+function switchHome(id,state){
+  const h=HOMES.find(x=>x.id===id)||HOMES[0];if(P&&items)clearTimeout(saveT);
+  items.forEach(i=>scene.remove(i.obj));items=[];select(null);
+  useProperty(h);DEFAULT_FIN=defaultFin();fin=JSON.parse(JSON.stringify(DEFAULT_FIN));
+  buildFlat();fillRoomMenus();$('#home').value=h.id;$('#sub').textContent=h.subtitle||'';
+  loadState(state||savedFor(h.id)||sample());
+  fitCamera();try{localStorage.setItem(KEYP+'last',h.id);}catch(_){}
 }
-let saved=null;try{saved=JSON.parse(localStorage.getItem(KEY)||'null');}catch(_){}
-loadState(saved&&saved.v===1?saved:sample());
+$('#home').innerHTML=HOMES.map(h=>`<option value="${h.id}">${esc(h.name)}</option>`).join('');
+$('#home').onchange=e=>{saveNow();switchHome(e.target.value);toast('Showing '+P.name);};
 
 $('#copy-layout').onclick=()=>{const t=JSON.stringify(stateObj());const ta=$('#copy-ta');ta.value=t;
   const fb=()=>{ta.hidden=false;ta.focus();ta.select();toast('Select and copy the code below');};
   try{navigator.clipboard.writeText(t).then(()=>toast('Layout code copied'),fb);}catch(_){fb();}};
 $('#paste-toggle').onclick=()=>{$('#paste-box').hidden=!$('#paste-box').hidden;};
-$('#paste-apply').onclick=()=>{try{const s=JSON.parse($('#paste-ta').value);if(!s||!Array.isArray(s.items))throw 0;loadState(s);save();$('#paste-msg').textContent='Layout applied.';}catch(_){$('#paste-msg').textContent='That code isn’t a valid layout. Copy it again from “Copy layout code” and paste the whole thing.';}};
+$('#paste-apply').onclick=()=>{try{const s=JSON.parse($('#paste-ta').value);if(!s||!Array.isArray(s.items))throw 0;if(s.p&&s.p!==P.id&&HOMES.some(h=>h.id===s.p)){saveNow();switchHome(s.p,s);}else loadState(s);save();$('#paste-msg').textContent='Layout applied.';}catch(_){$('#paste-msg').textContent='That code isn’t a valid layout. Copy it again from “Copy layout code” and paste the whole thing.';}};
 $('#load-sample').onclick=()=>{loadState(sample());save();toast('Sample layout loaded');};
 $('#clear-all').onclick=()=>{$('#clear-confirm').hidden=false;};
 $('#clear-no').onclick=()=>{$('#clear-confirm').hidden=true;};
@@ -770,8 +769,10 @@ function fly(pos,tgt,dur){const p0=camera.position.clone(),t0=controls.target.cl
   anim=now=>{const k=dur?Math.min(1,(now-st)/dur):1,e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;camera.position.lerpVectors(p0,pos,e);controls.target.lerpVectors(t0,tgt,e);if(k>=1)anim=null;};}
 function setView(v){view=v;['v3d','vtop','veye'].forEach(id=>$('#'+id).setAttribute('aria-pressed',id==='v'+v));
   items.forEach(i=>{if(i.def.mount==='ceil')i.obj.visible=v!=='top';});}
-function fitDist(){const t=Math.tan(camera.fov*Math.PI/360);const a=camera.aspect||1;return Math.max((YN/1000)*1.08/(2*t),(XE/1000)*1.08/(2*t*a));}
-function view3d(){setView('3d');const k=Math.max(1,fitDist()/16);fly(new THREE.Vector3(9.5*k,13*k,13*k),new THREE.Vector3(0,0,0.6));}
+function fitDist(){const t=Math.tan(camera.fov*Math.PI/360);const a=camera.aspect||1;return Math.max(SPANZ*1.12/(2*t),SPANX*1.12/(2*t*a));}
+function iso(){const k=Math.max(0.6,fitDist()/16);return new THREE.Vector3(9.5*k,13*k,13*k);}
+function fitCamera(){setView('3d');camera.position.copy(iso());controls.target.set(0,0,0);}
+function view3d(){setView('3d');fly(iso(),new THREE.Vector3(0,0,0));}
 function viewTop(){setView('top');fly(new THREE.Vector3(0,fitDist(),0.01),new THREE.Vector3(0,0,0));}
 function eyeView(r){setView('eye');r=r||ROOMS.find(x=>x.id===$('#room').value)||ROOMS[0];const m=r.m;
   const cx=(m[0]+m[1])/2,cz=(m[2]+m[3])/2;fly(new THREE.Vector3(m[0]+0.35+(m[1]-m[0])*0.05,1.55,m[3]-0.35),new THREE.Vector3(cx+(m[1]-m[0])*0.15,1.1,cz-(m[3]-m[2])*0.15));
@@ -781,16 +782,19 @@ function setWalls(h){wallCap=h;buildWalls();$('#wcut').setAttribute('aria-presse
 $('#wcut').onclick=()=>setWalls(1.2);$('#wfull').onclick=()=>setWalls(3);
 $('#lbl').onclick=()=>{labelsOn=!labelsOn;labelGroup.visible=labelsOn;$('#lbl').setAttribute('aria-pressed',labelsOn);};
 
-camera.position.set(9.5,13,13);controls.target.set(0,0,0.6);let fitted=false;
+
 
 /* ================= RENDER LOOP ================= */
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
-new ResizeObserver(()=>{resize();if(!fitted&&camera.aspect){fitted=true;const k=Math.max(1,fitDist()/16);camera.position.set(9.5*k,13*k,13*k);}}).observe(stage);resize();
+let fitted=false;
+new ResizeObserver(()=>{resize();if(!fitted&&stage.clientWidth){fitted=true;fitCamera();}}).observe(stage);resize();
+let lastHome=null;try{lastHome=localStorage.getItem(KEYP+'last');}catch(_){}
+switchHome(lastHome);
 function loop(now){requestAnimationFrame(loop);if(anim)anim(now);controls.update();renderer.render(scene,camera);}
 requestAnimationFrame(loop);
 $('#loading').hidden=true;
 renderFin();
-if(document.fonts&&document.fonts.ready)document.fonts.ready.then(buildLabels);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{buildLabels();buildStatic();});
 window.__planner={items:()=>items,status,select,addFromCatalogue};
 })();
 </script>

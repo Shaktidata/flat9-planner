@@ -335,8 +335,11 @@ const pY0=10400,pY1=11000,pD=600;
 const wRobe=W(x0+575,x0+600,bedY0,bedY1);                // robe front: 3 sliding doors under a bulkhead
 const wCab=W(x0+325,x0+343,7230,pY0,{h:2250,z0:1500});        // wall-cabinet front above the bench (5 doors)
 const wBench=W(kx1-600,kx1-582,benchY0,10400,{h:860,z0:100}); // plain bench front: 4 cabinet doors
+// tall cupboard opposite the fridge, between the bathroom door (D4) and the corner: 2 doors, 3 levels
+const cbY0=11250, cbY1=bedWallY0-10, cbD=450, cbH=1750, cbX=kx1-cbD;
+const wCupF=W(cbX,cbX+18,cbY0+18,cbY1-18,{h:cbH,z0:20});
 const wPanS=W(x0,x0+pD,pY0,pY0+25,{h:2100}), wPanN=W(x0,x0+pD,pY1-25,pY1,{h:2100}), wPanF=W(x0+pD-25,x0+pD,pY0+25,pY1-25,{h:2100});
-const walls=[wLeft,wTop,wRightMain,wBedS,wKB,wBathS,wD9,wSW4,wBayTop,wBayR,wBalR,rBal,rBalR,wPanS,wPanN,wPanF,wRobe,wCab,wBench];
+const walls=[wLeft,wTop,wRightMain,wBedS,wKB,wBathS,wD9,wSW4,wBayTop,wBayR,wBalR,rBal,rBalR,wPanS,wPanN,wPanF,wRobe,wCab,wBench,wCupF];
 
 const ow=(w,a0,a1,o)=>{const r=w.r,hz=(r[1]-r[0])>=(r[3]-r[2]);return Object.assign({wall:w,r:hz?[a0,a1,r[2],r[3]]:[r[0],r[1],a0,a1],z:[0,DH]},o);};
 const hi=[1600,2100];
@@ -353,6 +356,8 @@ const openings=[
    return ow(wRobe,a,a+L,{type:'slide1',z:[0,2400],panel:'#ece8df',track:k===1?-1:1,dir:k===2?-1:1,ways:k===1?2:1,label:'Robe door '+(k+1)});}),
  ...[0,1,2,3,4].map(k=>{const L=(pY0-7230)/5,a=7230+k*L;
    return ow(wCab,a+2,a+L-2,{type:'door',cab:true,hinge:['a','b','a','a','b'][k],swing:1,z:[1500,2250],color:'#ece8df',label:'Cabinet door '+(k+1)});}),
+ ...[0,1].map(k=>{const L=(cbY1-cbY0-36)/2,a=cbY0+18+k*L;
+   return ow(wCupF,a+2,a+L-2,{type:'door',cab:true,hinge:k?'b':'a',swing:-1,z:[20,cbH],color:'#ece8df',label:'Kitchen cupboard door '+(k+1)});}),
  ow(wPanF,pY0+30,pY1-30,{type:'door',hinge:'a',swing:1,z:[0,2050],label:'D6 pantry',color:'#e7e1d6'}),
  ...[0,1,2].map(k=>{const L=(xr-20-(bx0+20))/3,a=bx0+20+k*L;
    return ow(wD9,a+2,a+L-2,{type:'door',cab:true,hinge:['a','b','b'][k],swing:-1,z:[0,H-100],color:'#f4f3ef',label:'Cupboard door '+(k+1)});}),
@@ -379,6 +384,9 @@ const fixtures=[
  {type:'box',r:[x0+600,x0+618,7720-298,7720+298],z0:90,h:770,color:'#c3c7cb',label:'Dishwasher (under sink)'},
  {type:'box',r:[x0+618,x0+624,7720-250,7720+250],z0:780,h:50,color:'#2b2d30',label:'Dishwasher controls'},
  ...[350,850,1350,1850,2300].map(z=>({type:'box',r:[bx0,xr,d9Y1,stY1],z0:z,h:20,color:'#f4f3ef',clip:true,label:'Linen cupboard shelf'})),
+ {type:'box',r:[cbX,kx1,cbY0,cbY0+18],h:cbH,color:'#e7e1d6',label:'Kitchen cupboard side'},{type:'box',r:[cbX,kx1,cbY1-18,cbY1],h:cbH,color:'#e7e1d6',label:'Kitchen cupboard side'},
+ {type:'box',r:[cbX,kx1,cbY0+18,cbY1-18],h:20,color:'#e7e1d6',label:'Kitchen cupboard base'},
+ ...[600,1170,cbH-18].map(z=>({type:'box',r:[cbX+18,kx1,cbY0+18,cbY1-18],z0:z,h:18,color:'#e7e1d6',label:'Kitchen cupboard shelf'})),
  {type:'box',r:[bx0+20,bx0+640,11300,bedWallY0],h:850,color:'#f2f3f5',label:'Washer/dryer'},
  {type:'counter',r:[xr-640,xr,11400,bedWallY0],h:900,sink:[xr-320,11670],label:'Laundry tub'},
  {type:'counter',r:[xr-460,xr,10150,10950],h:850,sink:[xr-230,10550],label:'Vanity'},

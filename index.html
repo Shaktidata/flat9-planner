@@ -323,20 +323,22 @@ const wBalR=W(balX1,balX1+250,balY1-500,balY1);           // short column by the
 const rBal=W(x0,balX1,75,balY0,{h:1000,kind:'rail',style:'metal'}), rBalR=W(balX1,balX1+50,75,balY1-500,{h:1000,kind:'rail',style:'metal'});
 // pantry (D6): tall cupboard with its own door, between the fridge space and the bench
 const pY0=10400,pY1=11000,pD=600;
+const wRobe=W(x0+575,x0+600,bedY0,bedY1);                // robe front: 3 sliding doors under a bulkhead
 const wPanS=W(x0,x0+pD,pY0,pY0+25,{h:2100}), wPanN=W(x0,x0+pD,pY1-25,pY1,{h:2100}), wPanF=W(x0+pD-25,x0+pD,pY0+25,pY1-25,{h:2100});
-const walls=[wLeft,wTop,wRightMain,wBedS,wKB,wBathS,wD9,wSW4,wBayTop,wBayR,wBalR,rBal,rBalR,wPanS,wPanN,wPanF];
+const walls=[wLeft,wTop,wRightMain,wBedS,wKB,wBathS,wD9,wSW4,wBayTop,wBayR,wBalR,rBal,rBalR,wPanS,wPanN,wPanF,wRobe];
 
 const ow=(w,a0,a1,o)=>{const r=w.r,hz=(r[1]-r[0])>=(r[3]-r[2]);return Object.assign({wall:w,r:hz?[a0,a1,r[2],r[3]]:[r[0],r[1],a0,a1],z:[0,DH]},o);};
 const hi=[1600,2100];
 const openings=[
  ow(wLeft,5950,6820,{type:'door',hinge:'b',swing:1,label:'D1 entry',color:'#6b4f3a'}),
- ow(wSW4,x0+150,xr-150,{type:'slide3',fixed:[0,2],dir:-1,label:'SW4'}),
+ ow(wSW4,x0+150,xr-150,{type:'slide3',fixed:[0,2],dir:1,label:'SW4'}),
  ow(wSW4,bayX1-(1570+650)/2-0,bayX1-(1570-650)/2,{type:'slide',z:hi,label:'W9'}),
  ow(wBayTop,xr+485,xr+1085,{type:'slide',z:hi,label:'W4'}),
  ow(wRightMain,9500,10450,{type:'slide',z:hi,label:'W6'}),
  ow(wTop,x0+650,x0+2270,{type:'slide',z:[900,2100],label:'Bed window'}),
  ow(wBedS,x0+700,x0+1520,{type:'door',hinge:'a',swing:1,label:'D3'}),
  ow(wKB,10520,11240,{type:'door',hinge:'b',swing:1,label:'D4'}),
+ ow(wRobe,bedY0+10,bedY1-10,{type:'slide3',z:[0,2400],panel:'#ece8df',label:'SD3 robe'}),
  ow(wPanF,pY0+30,pY1-30,{type:'door',hinge:'a',swing:1,z:[0,2050],label:'D6 pantry',color:'#e7e1d6'}),
  ow(wD9,bx0+20,bx0+725,{type:'door',hinge:'a',swing:-1,label:'D9'}),
  ow(wD9,bx0+725,xr-20,{type:'door',hinge:'b',swing:-1,label:'D9'})
@@ -350,11 +352,12 @@ const rooms=[
  {id:'balcony',name:'Balcony',size:'10.00 m²',r:[x0,balX1,balY0,balY1],out:true}
 ];
 const fixtures=[
- {type:'box',r:[x0,x0+600,bedY0,bedY1],h:2400,color:'#ece8df',label:'Robe (SD3)'},
+ {type:'box',r:[x0,x0+575,bedY0,bedY1],z0:1800,h:20,color:'#e7e1d6',label:'Robe shelf'},
+ {type:'box',r:[x0+260,x0+290,bedY0+20,bedY1-20],z0:1700,h:25,color:'#b9bec3',label:'Robe hanging rail'},
  ...[400,800,1200,1600].map(z=>({type:'box',r:[x0,x0+pD-25,pY0+25,pY1-25],z0:z,h:20,color:'#e7e1d6',label:'Pantry shelf'})),
  {type:'box',r:[x0,x0+350,7230,pY0],z0:1500,h:750,color:'#e7e1d6',label:'Wall cabinets'},
- {type:'counter',r:[kx1-600,kx1,7230,pY0],h:900,label:'Second bench'},
- {type:'counter',r:[x0,x0+600,7230,10400],h:900,sink:[x0+300,8440],hob:[x0+300,9500]},
+ {type:'counter',r:[kx1-600,kx1,7230,pY0],h:900,top:'statuario',hob:[kx1-300,(7230+pY0)/2],label:'Second bench'},
+ {type:'counter',r:[x0,x0+600,7230,10400],h:900,top:'statuario',sink:[x0+300,8440],label:'Kitchen bench'},
  {type:'box',r:[bx0,xr,d9Y1,stY1],h:2100,color:'#e7e1d6',label:'Broom & linen cupboards'},
  {type:'box',r:[bx0+20,bx0+640,11300,bedWallY0],h:850,color:'#f2f3f5',label:'Washer/dryer'},
  {type:'counter',r:[xr-640,xr,11400,bedWallY0],h:900,sink:[xr-320,11670],label:'Laundry tub'},
@@ -373,7 +376,7 @@ const sample=[
 ].map(a=>({id:a[0],x:a[1],y:a[2],r:a[3],e:a[4]}));
 
 (window.PLANNER_PROPERTIES=window.PLANNER_PROPERTIES||[]).push({
-  id:'unit10', name:'Unit 10', subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
+  id:'unit10', name:'Unit 10', sampleVersion:3, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
   finishes:{wall:'#f7f7f5',
     floor:{living:'solid-wood',kitchen:'solid-wood',store:'solid-wood',bed1:'carpet',bath:'grey-tile',balcony:'grey-granite'},
     tile:{bath:'1x1',balcony:'2x2'}},
@@ -567,7 +570,7 @@ const FLOORS=[
 ];
 const TILES=[{id:'1x1',n:'1′×1′',w:0.3048,d:0.3048},{id:'2x2',n:'2′×2′',w:0.6096,d:0.6096},{id:'4x2',n:'4′×2′',w:1.2192,d:0.6096}];
 const texCache={};
-function floorCanvas(fid,size){
+function floorCanvas(fid,size,slab){
   const f=FLOORS.find(x=>x.id===fid)||FLOORS[0];const N=size||512;
   const cv=document.createElement('canvas');cv.width=cv.height=N;const g=cv.getContext('2d');const R=rng(fid.length*977+N);
   g.fillStyle=f.base;g.fillRect(0,0,N,N);
@@ -587,7 +590,7 @@ function floorCanvas(fid,size){
       if(f.k==='speck'){for(let i=0;i<1600;i++){g.fillStyle=f.spk[(R()*f.spk.length)|0];g.globalAlpha=0.5+R()*0.5;const s=0.6+R()*2.2;g.fillRect(ox+R()*half,oy+R()*half,s,s);}g.globalAlpha=1;}
       if(f.k==='plain'){for(let i=0;i<500;i++){g.fillStyle=`rgba(0,0,0,${R()*0.05})`;g.fillRect(ox+R()*half,oy+R()*half,2,2);}}
       g.restore();}
-    g.fillStyle=f.grout;g.fillRect(0,0,N,2);g.fillRect(0,half-1,N,2);g.fillRect(0,0,2,N);g.fillRect(half-1,0,2,N);
+    if(!slab){g.fillStyle=f.grout;g.fillRect(0,0,N,2);g.fillRect(0,half-1,N,2);g.fillRect(0,0,2,N);g.fillRect(half-1,0,2,N);}
   }
   return cv;
 }
@@ -606,16 +609,20 @@ const louvMat=new THREE.MeshStandardMaterial({color:0xdfe9ee,transparent:true,op
 const arcMat=new THREE.MeshBasicMaterial({color:0x6f8fb0,transparent:true,opacity:0.7,side:THREE.DoubleSide});
 function clearGroup(g){g.traverse(o=>{if(o.geometry)o.geometry.dispose();});while(g.children.length)g.remove(g.children[0]);}
 function boxAt(g,w,h,d,x,y,z,m,shadow){const me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);me.position.set(x,y,z);me.castShadow=shadow!==false;me.receiveShadow=true;g.add(me);return me;}
+const slabTex={};
 function buildStatic(){
   clearGroup(staticGroup);
   const slabM=mat('#d8d4cc');
   WALLS.map(w=>w.r).concat(...ROOMS.map(r=>r.rects)).forEach(r=>{const m=boxAt(staticGroup,(r[1]-r[0])/1000,0.15,(r[3]-r[2])/1000,wx((r[0]+r[1])/2),-0.076,wz((r[2]+r[3])/2),slabM,false);m.receiveShadow=true;});
   FIXTURES.forEach(f=>{const r=f.r,w=(r[1]-r[0])/1000,d=(r[3]-r[2])/1000,h=(f.h||900)/1000,cx=wx((r[0]+r[1])/2),cz=wz((r[2]+r[3])/2);
     if(f.type==='counter'){boxAt(staticGroup,w-0.02,h-0.14,d-0.02,cx,0.1+(h-0.14)/2,cz,mat('#e7e1d6',{roughness:.6}));boxAt(staticGroup,w-0.06,0.1,d-0.06,cx,0.05,cz,mat('#3a3836'));
-      boxAt(staticGroup,w,0.04,d,cx,h-0.02,cz,mat('#2b2a29',{roughness:.25}));
+      let topM=mat('#2b2a29',{roughness:.25});
+      if(f.top){if(!slabTex[f.top]){const t=new THREE.CanvasTexture(floorCanvas(f.top,512,true));t.wrapS=t.wrapT=THREE.RepeatWrapping;t.encoding=THREE.sRGBEncoding;slabTex[f.top]=t;}
+        const t=slabTex[f.top].clone();t.needsUpdate=true;t.repeat.set(w/1.4,d/1.4);topM=new THREE.MeshStandardMaterial({map:t,roughness:0.3});}
+      boxAt(staticGroup,w,0.04,d,cx,h-0.02,cz,topM);
       if(f.sink){boxAt(staticGroup,0.42,0.012,0.55,wx(f.sink[0]),h+0.006,wz(f.sink[1]),mat('#c7cbcf',{metalness:.7,roughness:.25}),false);}
-      if(f.hob){boxAt(staticGroup,0.45,0.012,0.6,wx(f.hob[0]),h+0.006,wz(f.hob[1]),mat('#111'),false);
-        [[-0.1,-0.13],[-0.1,0.13],[0.1,0]].forEach(p=>{const t=new THREE.Mesh(new THREE.TorusGeometry(0.07,0.012,8,20),mat('#555'));t.rotation.x=Math.PI/2;t.position.set(wx(f.hob[0])+p[0],h+0.016,wz(f.hob[1])+p[1]);staticGroup.add(t);});}}
+      if(f.hob){const hw=Math.min(0.58,w-0.04);boxAt(staticGroup,hw,0.008,0.58,wx(f.hob[0]),h+0.004,wz(f.hob[1]),mat('#0d0d0e',{roughness:.15}),false);
+        [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(p=>{const r=new THREE.Mesh(new THREE.RingGeometry(0.075,0.09,32),new THREE.MeshBasicMaterial({color:0x5b5d60,side:THREE.DoubleSide}));r.rotation.x=-Math.PI/2;r.position.set(wx(f.hob[0])+p[0]*hw/4,h+0.0095,wz(f.hob[1])+p[1]*0.145);staticGroup.add(r);});}}
     else{const z0=(f.z0||0)/1000;boxAt(staticGroup,w,h,d,cx,z0+h/2,cz,mat(f.color||'#cfc8bb'));}});
   const c=P.compass;if(c){const pad=0.9,dark=false;
     [[c.up,0,-SPANZ/2-pad,0],[c.down,0,SPANZ/2+pad,0],[c.left,-SPANX/2-pad,0,Math.PI/2],[c.right,SPANX/2+pad,0,-Math.PI/2]].forEach(([t,x,z,a])=>{if(!t)return;
@@ -667,7 +674,7 @@ function openingGroup(o,cap,idx){
   const sub=(x,z)=>{const q=new THREE.Group();q.position.set(x,0,z);g.add(q);return q;};
   const ft=0.05,fd=0.07;
   const frame=()=>{bx(W,z1-ft,z1,fd,0,0,frameMat);bx(W,z0,z0+(z0>0?ft:0.02),fd,0,0,frameMat);bx(ft,z0,z1,fd,-W/2+ft/2,0,frameMat);bx(ft,z0,z1,fd,W/2-ft/2,0,frameMat);};
-  const pane=(grp,cx,pw,y0,y1)=>{bxIn(grp,pw,y0,y0+0.05,0.035,cx,0,frameMat);bxIn(grp,pw,y1-0.05,y1,0.035,cx,0,frameMat);bxIn(grp,0.035,y0,y1,0.035,cx-pw/2+0.0175,0,frameMat);bxIn(grp,0.035,y0,y1,0.035,cx+pw/2-0.0175,0,frameMat);bxIn(grp,pw-0.06,y0+0.05,y1-0.05,0.008,cx,0,glassMat,false);};
+  const pane=(grp,cx,pw,y0,y1)=>{bxIn(grp,pw,y0,y0+0.05,0.035,cx,0,frameMat);bxIn(grp,pw,y1-0.05,y1,0.035,cx,0,frameMat);bxIn(grp,0.035,y0,y1,0.035,cx-pw/2+0.0175,0,frameMat);bxIn(grp,0.035,y0,y1,0.035,cx+pw/2-0.0175,0,frameMat);bxIn(grp,pw-0.06,y0+0.05,y1-0.05,o.panel?0.02:0.008,cx,0,o.panel?mat(o.panel,{roughness:.6}):glassMat,!!o.panel);};
   let apply=()=>{};
   if(o.type==='door'){
     const lw=W-0.03,lh=Math.min(z1,2.05),s=o.swing*nS,hx=o.hinge==='a'?-W/2+0.015:W/2-0.015,inn=o.hinge==='a'?1:-1,leaf=mat(o.color||'#a07a55',{roughness:.6}),cas=mat('#ebe6dc',{roughness:.7});
@@ -850,8 +857,8 @@ function snapWall(it){
   const s=ds[0][1];if(s==='n'){it.z=m[2]+d/2;it.r=0;}else if(s==='s'){it.z=m[3]-d/2;it.r=180;}else if(s==='w'){it.x=m[0]+d/2;it.r=90;}else{it.x=m[1]-d/2;it.r=270;}
 }
 function defElev(def){if(def.mount==='ceil')return CEIL-def.d[2]/100;return def.el||0;}
-function makeItem(id,x,z,r,e,vi){
-  const def=BYID[id];if(!def)return null;const it={uid:uidN++,id,def,x,z,r:r||0,e:(e==null?defElev(def):e),vi:vi||0};
+function makeItem(id,x,z,r,e,vi,ex){
+  const def=BYID[id];if(!def)return null;const it=Object.assign({uid:uidN++,id,def,x,z,r:r||0,e:(e==null?defElev(def):e),vi:vi||0},ex||{});
   it.obj=buildObj(def,it.vi);it.obj.userData.uid=it.uid;it.obj.traverse(o=>{o.userData.uid=o.userData.uid||it.uid;});
   scene.add(it.obj);placeObj(it);items.push(it);if(def.mount==='ceil'&&view==='top')it.obj.visible=false;return it;
 }
@@ -867,7 +874,7 @@ function addFromCatalogue(id){
   const def=BYID[id];const rm=ROOMS.find(r=>r.id===$('#room').value)||ROOMS[0];
   const cx=(rm.m[0]+rm.m[1])/2,cz=(rm.m[2]+rm.m[3])/2;
   const n=items.filter(i=>roomAt(i.x,i.z)===rm).length;const jit=(n%5)*0.12;
-  const it=makeItem(id,cx+jit,cz+jit,0);if(def.mount==='wall')snapWall(it);placeObj(it);
+  const it=makeItem(id,cx+jit,cz+jit,0,null,0,{u:1});if(def.mount==='wall')snapWall(it);placeObj(it);
   select(it);save();renderList();toast('Added to '+rm.name);
 }
 
@@ -894,7 +901,7 @@ function renderInsp(){
   const el=$('#i-el');if(el){el.oninput=()=>{sel.e=el.value/100;$('#o-el').textContent=el.value+' cm';placeObj(sel);updateSel();};el.onchange=save;}
   insp.querySelectorAll('[data-mv]').forEach(b=>b.onclick=()=>{const [dx,dz]=b.dataset.mv.split(',').map(Number);sel.x+=dx*0.05;sel.z+=dz*0.05;placeObj(sel);updateSel();save();});
   insp.querySelectorAll('[data-vi]').forEach(b=>b.onclick=()=>{sel.vi=+b.dataset.vi;rebuildObj(sel);renderInsp();updateSel();save();renderList();});
-  $('#i-dup').onclick=()=>{const it=makeItem(sel.id,sel.x+0.3,sel.z+0.3,sel.r,sel.e,sel.vi);select(it);save();renderList();};
+  $('#i-dup').onclick=()=>{const it=makeItem(sel.id,sel.x+0.3,sel.z+0.3,sel.r,sel.e,sel.vi,{u:1});select(it);save();renderList();};
   $('#i-del').onclick=()=>removeItem(sel);
   updateSel();
 }
@@ -963,24 +970,31 @@ function renderList(){
 
 /* ================= SAVE / LOAD (one saved layout per home, in this browser) ================= */
 const KEYP='home-planner-v2:';
-function stateObj(){return{v:2,p:P.id,o:opTarget.slice(),items:items.map(i=>({id:i.id,x:+i.x.toFixed(3),z:+i.z.toFixed(3),r:Math.round(i.r),e:+i.e.toFixed(3),vi:i.vi})),fin};}
+function stateObj(){return{v:2,p:P.id,sv:P.sampleVersion||1,o:opTarget.slice(),items:items.map(i=>Object.assign({id:i.id,x:+i.x.toFixed(3),z:+i.z.toFixed(3),r:Math.round(i.r),e:+i.e.toFixed(3),vi:i.vi},i.u?{u:1}:{},i.sx!=null?{sx:i.sx,sz:i.sz}:{})),fin};}
 function saveNow(){try{localStorage.setItem(KEYP+P.id,JSON.stringify(stateObj()));localStorage.setItem(KEYP+'last',P.id);}catch(_){}}
 let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(saveNow,250);}
 function loadState(s){
   items.forEach(i=>scene.remove(i.obj));items=[];select(null);
-  (s.items||[]).forEach(o=>makeItem(o.id,o.x,o.z,o.r,o.e,o.vi));
+  (s.items||[]).forEach(o=>makeItem(o.id,o.x,o.z,o.r,o.e,o.vi,Object.assign({},o.u?{u:1}:{},o.sx!=null?{sx:o.sx,sz:o.sz}:{})));
   opTarget=(Array.isArray(s.o)&&s.o.length===OPENINGS.length)?s.o.map(v=>v?1:0):defaultOps();opCur=opTarget.slice();applyOps();updateOpButtons();
   const d=defaultFin();fin=(s.fin&&s.fin.floor)?{floor:Object.assign(d.floor,s.fin.floor),tile:Object.assign(d.tile,s.fin.tile||{}),wall:s.fin.wall||d.wall}:d;
   wallMat.color.set(new THREE.Color(fin.wall).convertSRGBToLinear());buildFloors();buildLabels();renderFin();renderList();
 }
-function sample(){return{v:2,p:P.id,items:(P.sample||[]).filter(a=>BYID[a.id]).map(a=>({id:a.id,x:wx(a.x),z:wz(a.y),r:a.r||0,e:a.e!=null?a.e:defElev(BYID[a.id]),vi:0})),fin:defaultFin()};}
+function sample(){return{v:2,p:P.id,sv:P.sampleVersion||1,items:(P.sample||[]).filter(a=>BYID[a.id]).map(a=>{const x=+wx(a.x).toFixed(3),z=+wz(a.y).toFixed(3);return{id:a.id,x,z,sx:x,sz:z,r:a.r||0,e:a.e!=null?a.e:defElev(BYID[a.id]),vi:0};}),fin:defaultFin()};}
+// When a home's starting layout is updated, bring the new furniture in while keeping what the person changed:
+// items they added stay, sample items they moved keep their spot, finishes and open doors stay.
+function upgradeLayout(s){const n=sample(),pool=(s.items||[]).filter(i=>!i.u&&i.sx!=null);
+  n.items=n.items.map(it=>{const k=pool.findIndex(p=>p.id===it.id);if(k<0)return it;const p=pool.splice(k,1)[0];
+    return Math.hypot(p.x-p.sx,p.z-p.sz)>0.01?Object.assign({},it,{x:p.x,z:p.z,r:p.r,e:p.e,vi:p.vi}):Object.assign({},it,{vi:p.vi});});
+  n.items=n.items.concat((s.items||[]).filter(i=>i.u));if(s.fin)n.fin=s.fin;if(Array.isArray(s.o))n.o=s.o;return n;}
 function savedFor(id){try{const s=JSON.parse(localStorage.getItem(KEYP+id)||'null');return s&&s.v===2?s:null;}catch(_){return null;}}
 function switchHome(id,state){
   const h=HOMES.find(x=>x.id===id)||HOMES[0];if(P&&items)clearTimeout(saveT);
   items.forEach(i=>scene.remove(i.obj));items=[];select(null);
   useProperty(h);opTarget=defaultOps();opCur=opTarget.slice();DEFAULT_FIN=defaultFin();fin=JSON.parse(JSON.stringify(DEFAULT_FIN));
   buildFlat();fillRoomMenus();$('#home').value=h.id;$('#sub').textContent=h.subtitle||'';
-  loadState(state||savedFor(h.id)||sample());
+  let st=state||savedFor(h.id),upgraded=false;if(st&&!state&&(st.sv||1)!==(h.sampleVersion||1)){st=upgradeLayout(st);upgraded=true;}
+  loadState(st||sample());if(upgraded){saveNow();setTimeout(()=>toast('New furniture added to '+h.name),400);}
   fitCamera();try{localStorage.setItem(KEYP+'last',h.id);}catch(_){}
 }
 $('#home').innerHTML=HOMES.map(h=>`<option value="${h.id}">${esc(h.name)}</option>`).join('');

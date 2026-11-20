@@ -418,7 +418,11 @@ function buildStatic(){
   const slabM=mat('#d8d4cc');
   WALLS.map(w=>w.r).concat(...ROOMS.map(r=>r.rects)).forEach(r=>{const m=boxAt(staticGroup,(r[1]-r[0])/1000,0.15,(r[3]-r[2])/1000,wx((r[0]+r[1])/2),-0.076,wz((r[2]+r[3])/2),slabM,false);m.receiveShadow=true;});
   FIXTURES.forEach(f=>{const r=f.r,w=(r[1]-r[0])/1000,d=(r[3]-r[2])/1000,h=(f.h||900)/1000,cx=wx((r[0]+r[1])/2),cz=wz((r[2]+r[3])/2);
-    if(f.type==='counter'){boxAt(staticGroup,w-0.02,h-0.14,d-0.02,cx,0.1+(h-0.14)/2,cz,mat('#e7e1d6',{roughness:.6}));boxAt(staticGroup,w-0.06,0.1,d-0.06,cx,0.05,cz,mat('#3a3836'));
+    if(f.type==='counter'){const cm=mat('#e7e1d6',{roughness:.6});
+      if(f.hollow){const lx=w>=d;boxAt(staticGroup,w-0.02,0.018,d-0.02,cx,0.109,cz,cm);
+        [-1,1].forEach(k=>boxAt(staticGroup,lx?0.018:w-0.02,h-0.14,lx?d-0.02:0.018,cx+(lx?k*(w/2-0.019):0),0.1+(h-0.14)/2,cz+(lx?0:k*(d/2-0.019)),cm));}
+      else boxAt(staticGroup,w-0.02,h-0.14,d-0.02,cx,0.1+(h-0.14)/2,cz,cm);
+      boxAt(staticGroup,w-0.06,0.1,d-0.06,cx,0.05,cz,mat('#3a3836'));
       let topM=mat('#2b2a29',{roughness:.25});
       if(f.top){if(!slabTex[f.top]){const t=new THREE.CanvasTexture(floorCanvas(f.top,512,true));t.wrapS=t.wrapT=THREE.RepeatWrapping;t.encoding=THREE.sRGBEncoding;slabTex[f.top]=t;}
         const t=slabTex[f.top].clone();t.needsUpdate=true;t.repeat.set(w/1.4,d/1.4);topM=new THREE.MeshStandardMaterial({map:t,roughness:0.3});}
@@ -529,7 +533,7 @@ function buildWalls(){
       const m=boxAt(wallGroup,(b[1]-b[0])/1000,(z1-z0)/1000,(b[3]-b[2])/1000,wx((b[0]+b[1])/2),(z0+z1)/2000,wz((b[2]+b[3])/2),wallMat);
       if(z1<b[5]&&z1===cm)boxAt(wallGroup,(b[1]-b[0])/1000+0.001,0.004,(b[3]-b[2])/1000+0.001,m.position.x,z1/1000+0.002,m.position.z,capMat,false);});
   });
-  opParts=OPENINGS.map((o,i)=>{const r=openingGroup(o,(o.cab||o.wall.z0)?H/1000:wallCap,i);wallGroup.add(r.g);r.apply(opCur[i]||0);return r;});
+  opParts=OPENINGS.map((o,i)=>{const r=openingGroup(o,o.wall.z0?H/1000:wallCap,i);wallGroup.add(r.g);r.apply(opCur[i]||0);return r;});
 }
 function textTex(lines,dark,single){const cv=document.createElement('canvas');cv.width=512;cv.height=160;const g=cv.getContext('2d');
   g.textAlign='center';g.fillStyle=dark?'rgba(255,255,255,.92)':'rgba(30,36,33,.85)';

@@ -85,18 +85,22 @@ const fixtures=[
  {type:'box',r:[xr-420,xr,9250,9650],h:420,color:'#fbfbfb',label:'Toilet'},
  {type:'box',r:[bx0+10,xr,bathY0,bathY0+950],h:30,color:'#cfd4d8',label:'Shower'}
 ];
+const bedX=x0+2330;                                       // bed centre: under the window, right of the door swing
 const w9x=(bayX1-(1570+650)/2+bayX1-(1570-650)/2)/2;     // centre of the small window W9
 const sample=[
  ['g-tvunit',bayX1-200,5600,270,0,1,1],['g-tv55s',bayX1-200,5600,270,0.45,0,1],['g-lsofa',x0+2450,5300,90,0,0,1],
  ['ps-rug',x0+3150,5600,0],['g-shoerack',x0+160,(6820+7230)/2,90,0,0,1],['g-cubeshelf',x0+175,livY0+400,90],['g-ac',x0+115,livY0+650,90,2.15,0,1],
- ['g-dining4',x0+900,4000,0],['g-dchair',x0+600,3300,180],['g-dchair',x0+1200,3300,180],['g-dchair',x0+600,4700,0],['g-dchair',x0+1200,4700,0],
+ ['g-dining4',x0+900,4000,0],['g-dchair',x0+600,3300,180,0,1,1],['g-dchair',x0+1200,3300,180,0,1,1],['g-dchair',x0+600,4700,0,0,1,1],['g-dchair',x0+1200,4700,0,0,1,1],
  ['g-desk',w9x,livY0+300,180,0,0,1],['g-office',w9x,livY0+950,0,0,0,1],
- ['g-fridge2',x0+360,11500,90],['g-queen',xr-1065,13700,270],['ps-bedside',xr-150,12730,270],
+ ['g-fridge2',x0+360,11500,90],
+ // bed: headboard against the window wall, clear of the bedroom door's swing; a cabinet each side (lamp on one, books on the other)
+ ['g-queen',bedX,bedY1-1065,0,0,0,1],['g-nightstand',bedX-1010,bedY1-200,0,0,0,1],['g-nightstand',bedX+1010,bedY1-200,0,0,0,1],
+ ['g-tablelamp',bedX-1010,bedY1-210,0,0.45,0,1],['g-books',bedX+1010,bedY1-210,0,0.45,0,1],
  ['g-grass',(x0+balX1)/2,(balY0+balY1)/2,0,0,0,1],['g-bistro',(x0+balX1)/2,(balY0+balY1)/2+150,0,0,0,1],['g-plant',x0+350,500,0,0,0,1]
 ].map(a=>({id:a[0],x:a[1],y:a[2],r:a[3],e:a[4]||undefined,vi:a[5]||0,f:a[6]?1:0}));
 
 (window.PLANNER_PROPERTIES=window.PLANNER_PROPERTIES||[]).push({
-  id:'unit10', name:'Unit 10', sampleVersion:7, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
+  id:'unit10', name:'Unit 10', sampleVersion:8, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
   finishes:{wall:'#f7f7f5',
     floor:{living:'solid-wood',kitchen:'solid-wood',store:'solid-wood',bed1:'carpet',bath:'grey-tile',balcony:'grey-granite'},
     tile:{bath:'1x1',balcony:'2x2'}},

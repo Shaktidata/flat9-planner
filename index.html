@@ -393,18 +393,22 @@ const fixtures=[
  {type:'box',r:[xr-420,xr,9250,9650],h:420,color:'#fbfbfb',label:'Toilet'},
  {type:'box',r:[bx0+10,xr,bathY0,bathY0+950],h:30,color:'#cfd4d8',label:'Shower'}
 ];
+const bedX=x0+2330;                                       // bed centre: under the window, right of the door swing
 const w9x=(bayX1-(1570+650)/2+bayX1-(1570-650)/2)/2;     // centre of the small window W9
 const sample=[
  ['g-tvunit',bayX1-200,5600,270,0,1,1],['g-tv55s',bayX1-200,5600,270,0.45,0,1],['g-lsofa',x0+2450,5300,90,0,0,1],
  ['ps-rug',x0+3150,5600,0],['g-shoerack',x0+160,(6820+7230)/2,90,0,0,1],['g-cubeshelf',x0+175,livY0+400,90],['g-ac',x0+115,livY0+650,90,2.15,0,1],
- ['g-dining4',x0+900,4000,0],['g-dchair',x0+600,3300,180],['g-dchair',x0+1200,3300,180],['g-dchair',x0+600,4700,0],['g-dchair',x0+1200,4700,0],
+ ['g-dining4',x0+900,4000,0],['g-dchair',x0+600,3300,180,0,1,1],['g-dchair',x0+1200,3300,180,0,1,1],['g-dchair',x0+600,4700,0,0,1,1],['g-dchair',x0+1200,4700,0,0,1,1],
  ['g-desk',w9x,livY0+300,180,0,0,1],['g-office',w9x,livY0+950,0,0,0,1],
- ['g-fridge2',x0+360,11500,90],['g-queen',xr-1065,13700,270],['ps-bedside',xr-150,12730,270],
+ ['g-fridge2',x0+360,11500,90],
+ // bed: headboard against the window wall, clear of the bedroom door's swing; a cabinet each side (lamp on one, books on the other)
+ ['g-queen',bedX,bedY1-1065,0,0,0,1],['g-nightstand',bedX-1010,bedY1-200,0,0,0,1],['g-nightstand',bedX+1010,bedY1-200,0,0,0,1],
+ ['g-tablelamp',bedX-1010,bedY1-210,0,0.45,0,1],['g-books',bedX+1010,bedY1-210,0,0.45,0,1],
  ['g-grass',(x0+balX1)/2,(balY0+balY1)/2,0,0,0,1],['g-bistro',(x0+balX1)/2,(balY0+balY1)/2+150,0,0,0,1],['g-plant',x0+350,500,0,0,0,1]
 ].map(a=>({id:a[0],x:a[1],y:a[2],r:a[3],e:a[4]||undefined,vi:a[5]||0,f:a[6]?1:0}));
 
 (window.PLANNER_PROPERTIES=window.PLANNER_PROPERTIES||[]).push({
-  id:'unit10', name:'Unit 10', sampleVersion:7, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
+  id:'unit10', name:'Unit 10', sampleVersion:8, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
   finishes:{wall:'#f7f7f5',
     floor:{living:'solid-wood',kitchen:'solid-wood',store:'solid-wood',bed1:'carpet',bath:'grey-tile',balcony:'grey-granite'},
     tile:{bath:'1x1',balcony:'2x2'}},
@@ -515,12 +519,15 @@ const GEN=[
  {id:'g-lsofa',n:'L-shaped sofa with chaise',c:'Seating',d:[270,160,85],s:'chaise',col:'#7b7f84'},
  {id:'g-sofa2',n:'Sofa, 2-seat',c:'Seating',d:[150,85,85],s:'sofa',col:'#6c7a86'},
  {id:'g-office',n:'Office chair',c:'Seating',d:[65,65,110],s:'office',col:'#2b2b2b'},
- {id:'g-dchair',n:'Dining chair',c:'Seating',d:[45,50,90],s:'chair',col:'#8a6a4f'},
+ {id:'g-dchair',n:'Dining chair',c:'Seating',d:[45,50,90],s:'chair',col:'#8a6a4f',vars:[{l:'Walnut',col:'#8a6a4f'},{l:'Grey (matches sofa)',col:'#7b7f84'}]},
  {id:'g-coffee',n:'Coffee table',c:'Tables',d:[100,55,42],s:'table',col:'#6f5a49'},
  {id:'g-dining6',n:'Dining table, 6-seat',c:'Tables',d:[180,90,75],s:'table',col:'#6f5a49'},
  {id:'g-dining4',n:'Dining table, 4-seat',c:'Tables',d:[120,75,75],s:'table',col:'#8a6a4f'},
  {id:'g-desk',n:'Study desk',c:'Tables',d:[120,60,75],s:'table',col:'#e7e1d6'},
  {id:'g-plant',n:'Floor plant in pot',c:'Decor',d:[45,45,120],s:'plant'},
+ {id:'g-nightstand',n:'Bedside cabinet with drawers',c:'Storage',d:[40,38,45],s:'nightstand',col:'#e9e4da'},
+ {id:'g-tablelamp',n:'Bedside lamp',c:'Lighting',d:[26,26,45],s:'tablelampg',col:'#d8d2c4'},
+ {id:'g-books',n:'Stack of books',c:'Decor',d:[24,17,13],s:'books',col:'#8b3a3a'},
  {id:'g-grass',n:'Synthetic grass mat, 2.5 × 1.5 m',c:'Decor',d:[250,150,1],s:'grass',col:'#4f8a3a'},
  {id:'g-bistro',n:'Outdoor bistro set (2 chairs + round glass table)',c:'Seating',d:[165,70,95],s:'bistro',col:'#2a2b2d'},
 ].map(o=>Object.assign({col:'#9aa0a6'},o,{src:'gen'}));
@@ -840,6 +847,12 @@ const BUILD={
   const n=w>1.6?3:(w>1.05?2:1),cw=(w-2*a)/n;for(let i=0;i<n;i++)add(g,B(cw-0.01,0.14,d-0.24),mat(shade(c,0.03),{roughness:.95}),-w/2+a+cw*(i+.5),sh-0.07+0.07,0.1);
   add(g,B(w-2*a,h-0.27,0.22),m,0,0.27+(h-0.27)/2,-d/2+0.11);
   [-1,1].forEach(s=>add(g,B(a,Math.min(h*0.78,0.64)-0.07,d),m,s*(w/2-a/2),0.07+(Math.min(h*0.78,0.64)-0.07)/2,0));},
+ nightstand(g,w,d,h,c){const m=mat(c,{roughness:.55}),ln=mat(shade(c,-0.25)),kn=mat('#b9bec3',{metalness:.7,roughness:.3});
+  add(g,B(w,h-0.05,d),m,0,0.05+(h-0.05)/2,0);legs4(g,w,d,0.05,0.03,ln,0.03);
+  [0.5,0.0].forEach((f,i)=>{const y=0.05+(h-0.05)*(i?0.27:0.73);add(g,B(w-0.03,0.004,0.004),ln,0,0.05+(h-0.05)*0.5,d/2+0.002);add(g,B(0.08,0.012,0.015),kn,0,y,d/2+0.008);});},
+ tablelampg(g,w,d,h,c){add(g,CY(w*0.28,w*0.3,0.025,24),mat('#3a3a3a',{metalness:.4,roughness:.4}),0,0.0125,0);add(g,CY(0.01,0.01,h*0.55,8),mat('#3a3a3a',{metalness:.4}),0,0.025+h*0.275,0);
+  add(g,CY(w*0.36,w/2,h*0.42,28,1,true),new THREE.MeshStandardMaterial({color:new THREE.Color(c).convertSRGBToLinear(),emissive:0xffe2b0,emissiveIntensity:.45,roughness:.9,side:THREE.DoubleSide}),0,h-h*0.21,0);},
+ books(g,w,d,h,c){const cols=['#8b3a3a','#2d5b4f','#c9a227','#3b5d8f'],n=4,bh=h/n;for(let i=0;i<n;i++){const b=add(g,B(w*(0.85+0.15*((i*7)%3)/2),bh*0.95,d*(0.9+0.1*(i%2))),mat(cols[i%4],{roughness:.8}),0,bh*(i+0.5),0);b.rotation.y=(i%2?0.12:-0.08);}},
  grass(g,w,d,h,c){if(!grassTex){const cv=document.createElement('canvas');cv.width=cv.height=256;const x=cv.getContext('2d'),R=rng(5);x.fillStyle='#4a8236';x.fillRect(0,0,256,256);
    for(let i=0;i<6000;i++){x.fillStyle=['#3b6e2b','#5c9a44','#6cab4f','#41772f'][(R()*4)|0];x.fillRect(R()*256,R()*256,1.2,2.5);}grassTex=new THREE.CanvasTexture(cv);grassTex.wrapS=grassTex.wrapT=THREE.RepeatWrapping;grassTex.encoding=THREE.sRGBEncoding;}
   const t=grassTex.clone();t.needsUpdate=true;t.repeat.set(w/0.5,d/0.5);add(g,B(w,0.012,d),new THREE.MeshStandardMaterial({map:t,roughness:1}),0,0.006,0,false);},

@@ -89,6 +89,10 @@ a{color:var(--accent)}
 .stage{position:relative;min-width:0;min-height:0;background:var(--scene)}
 #view{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none}
 .hint{position:absolute;left:12px;bottom:12px;font-size:12px;color:var(--muted);background:color-mix(in srgb,var(--panel) 85%,transparent);padding:6px 10px;border-radius:8px;pointer-events:none;max-width:calc(100% - 24px)}
+.walkpad{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(2,44px);gap:6px;touch-action:none;user-select:none;-webkit-user-select:none}
+.walkpad button{border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--panel) 88%,transparent);color:var(--fg);font-size:18px;cursor:pointer;touch-action:none}
+.walkpad button:active,.walkpad button.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.walkpad .fw{grid-column:2;grid-row:1}.walkpad .tl{grid-column:1;grid-row:2}.walkpad .bk{grid-column:2;grid-row:2}.walkpad .tr{grid-column:3;grid-row:2}
 .insp{position:absolute;right:12px;top:12px;width:300px;max-width:calc(100% - 24px);background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:flex;flex-direction:column;gap:10px;max-height:calc(100% - 24px);overflow:auto}
 .insp h3{margin:0;font-family:var(--font-display);font-size:15px;font-weight:600;line-height:1.25;padding-right:26px}
 .insp .x{position:absolute;right:8px;top:8px;border:0;background:none;cursor:pointer;font-size:18px;color:var(--muted);width:28px;height:28px;border-radius:6px}
@@ -115,6 +119,7 @@ a{color:var(--accent)}
   .ctl-label{display:none}
   .insp{top:auto;bottom:8px;right:8px;left:8px;width:auto;max-height:62%;padding:10px 12px;gap:8px}
   .hint{display:none}
+  .walkpad{bottom:10px;left:auto;right:10px;transform:none}
 }
 @media (prefers-reduced-motion: reduce){.toast{transition:none}}
 </style>
@@ -188,6 +193,9 @@ a{color:var(--accent)}
     <canvas id="view" aria-label="3D view of the home"></canvas>
     <div class="loading" id="loading">Loading the 3D view…</div>
     <div class="hint" id="hint">Drag to look around · scroll or pinch to zoom · click an item to select and drag it · click a door or window to open or close it</div>
+    <div class="walkpad" id="walkpad" hidden aria-label="Walk controls">
+      <button class="fw" data-k="pad-fw" aria-label="Walk forward">▲</button><button class="tl" data-k="pad-tl" aria-label="Turn left">↺</button><button class="bk" data-k="pad-bk" aria-label="Walk back">▼</button><button class="tr" data-k="pad-tr" aria-label="Turn right">↻</button>
+    </div>
     <div class="insp" id="insp" hidden></div>
     <div class="toast" id="toast" role="status"></div>
   </div>
@@ -400,6 +408,7 @@ const sample=[
 (function(){
 "use strict";
 const $=s=>document.querySelector(s);
+const HINT='Drag to look around · scroll or pinch to zoom · click an item to select and drag it · click a door or window to open or close it';
 const toastEl=$('#toast');let toastT;
 function toast(m){toastEl.textContent=m;toastEl.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('on'),1800);}
 if(!window.THREE||!THREE.OrbitControls){$('#loading').textContent='The 3D library could not load. Check your connection and reload the page.';return;}
@@ -541,10 +550,55 @@ canvas.addEventListener('pointerdown',e=>{
     const it=items.find(i=>i.uid===o.userData.uid);
     if(it){select(it);const p=floorHit();
       if(p){drag={it,dx:it.x-p.x,dz:it.z-p.z,moved:false};controls.enabled=false;try{canvas.setPointerCapture(e.pointerId);}catch(_){}}}
-  }
+  } else if(walk.active){walk.look={x:e.clientX,y:e.clientY};try{canvas.setPointerCapture(e.pointerId);}catch(_){}}
 },{capture:true});
 let hoverPending=false;
+/* ---- Eye level: walk through the home ---- */
+const walk={active:false,yaw:0,pitch:0,look:null,keys:new Set(),from:null,t:1,bk:{key:'',list:[]}};
+const EYE=1.6,BODY=0.22;
+function walkBlockers(){
+  const key=P.id+'|'+opTarget.map(v=>Math.abs(v)>0.5?1:0).join('');if(walk.bk.key===key)return walk.bk.list;
+  const rr=r=>({x0:wx(r[0]),x1:wx(r[1]),z0:wz(r[3]),z1:wz(r[2])}),list=[];
+  WALLS.forEach(w=>{if(w.z0)return;if(w.kind==='rail'){list.push(rr(w.r));return;}
+    wallPieces(w).forEach(b=>{if(b[4]<1000&&b[5]>300)list.push(rr([b[0],b[1],b[2],b[3]]));});});
+  OPENINGS.forEach((o,i)=>{if(!o.cab&&o.z[0]<300&&Math.abs(opTarget[i])<0.5)list.push(rr(o.r));});
+  FIXTURES.forEach(f=>{if(!(f.z0>0)&&f.h>=300)list.push(rr(f.r));});
+  walk.bk={key,list};return list;}
+function blocked(x,z){for(const r of walkBlockers()){const cx=Math.max(r.x0,Math.min(x,r.x1)),cz=Math.max(r.z0,Math.min(z,r.z1));if((x-cx)*(x-cx)+(z-cz)*(z-cz)<BODY*BODY)return true;}return false;}
+function freeSpot(r){const m=r.m,tries=[[0.5,0.5],[0.25,0.75],[0.75,0.25],[0.25,0.25],[0.75,0.75]];
+  for(const [fx,fz] of tries){const x=m[0]+(m[1]-m[0])*fx,z=m[2]+(m[3]-m[2])*fz;if(!blocked(x,z))return[x,z];}
+  for(let i=1;i<10;i++)for(let k=1;k<10;k++){const x=m[0]+(m[1]-m[0])*i/10,z=m[2]+(m[3]-m[2])*k/10;if(!blocked(x,z))return[x,z];}
+  return[(m[0]+m[1])/2,(m[2]+m[3])/2];}
+function enterWalk(r){
+  r=r||ROOMS.find(x=>x.id===$('#room').value)||ROOMS[0];if(wallCap<3)setWalls(3);
+  const [x,z]=freeSpot(r),m=r.m,cx=(m[0]+m[1])/2,cz=(m[2]+m[3])/2;
+  walk.yaw=(Math.abs(cx-x)+Math.abs(cz-z)>0.3)?Math.atan2(-(cx-x),-(cz-z)):((m[1]-m[0])>(m[3]-m[2])?Math.PI/2:0);walk.pitch=-0.05;
+  walk.from=camera.position.clone();walk.to=new THREE.Vector3(x,EYE,z);walk.t=matchMedia('(prefers-reduced-motion: reduce)').matches?1:0;
+  walk.active=true;anim=null;controls.enabled=false;camera.rotation.order='YXZ';
+  $('#walkpad').hidden=false;$('#hint').textContent='Walk with W A S D or the arrow keys (Q/E or ← → to turn) · drag to look around · click a door to open it';
+}
+function exitWalk(){if(!walk.active)return;walk.active=false;walk.keys.clear();controls.enabled=true;
+  const d=new THREE.Vector3();camera.getWorldDirection(d);controls.target.copy(camera.position).addScaledVector(d,2);
+  $('#walkpad').hidden=true;$('#hint').textContent=HINT;}
+function walkStep(dt){
+  if(walk.t<1){walk.t=Math.min(1,walk.t+dt/0.6);const e=walk.t*walk.t*(3-2*walk.t);camera.position.lerpVectors(walk.from,walk.to,e);}
+  else{const K=walk.keys,has=(...c)=>c.some(k=>K.has(k));
+    const f=(has('KeyW','ArrowUp','pad-fw')?1:0)-(has('KeyS','ArrowDown','pad-bk')?1:0),s=(has('KeyD')?1:0)-(has('KeyA')?1:0);
+    const turn=(has('KeyE','ArrowRight','pad-tr')?1:0)-(has('KeyQ','ArrowLeft','pad-tl')?1:0);walk.yaw-=turn*1.9*dt;
+    if(f||s){const sp=(has('ShiftLeft','ShiftRight')?2.8:1.5)*dt/Math.hypot(f,s),sy=Math.sin(walk.yaw),cy=Math.cos(walk.yaw);
+      const dx=(-sy*f+cy*s)*sp,dz=(-cy*f-sy*s)*sp,p=camera.position;
+      if(!blocked(p.x+dx,p.z))p.x+=dx;if(!blocked(p.x,p.z+dz))p.z+=dz;}}
+  camera.rotation.set(walk.pitch,walk.yaw,0,'YXZ');
+}
+addEventListener('keydown',e=>{if(!walk.active||/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
+  if(sel&&e.code.startsWith('Arrow'))return;if(/^(Key[WASDQE]|Arrow|Shift)/.test(e.code)){if(e.code==='KeyE'||e.code==='KeyQ'||e.code.startsWith('Arrow'))e.preventDefault();walk.keys.add(e.code);}});
+addEventListener('keyup',e=>walk.keys.delete(e.code));addEventListener('blur',()=>walk.keys.clear());
+canvas.addEventListener('wheel',e=>{if(!walk.active)return;e.preventDefault();const st=Math.sign(-e.deltaY)*0.25,p=camera.position,dx=-Math.sin(walk.yaw)*st,dz=-Math.cos(walk.yaw)*st;
+  if(!blocked(p.x+dx,p.z))p.x+=dx;if(!blocked(p.x,p.z+dz))p.z+=dz;},{passive:false});
+document.querySelectorAll('#walkpad button').forEach(b=>{const k=b.dataset.k,on=e=>{e.preventDefault();walk.keys.add(k);b.classList.add('on');try{b.setPointerCapture(e.pointerId);}catch(_){}},off=()=>{walk.keys.delete(k);b.classList.remove('on');};
+  b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('lostpointercapture',off);});
 canvas.addEventListener('pointermove',e=>{
+  if(walk.look){walk.yaw-=(e.clientX-walk.look.x)*0.0045;walk.pitch=Math.max(-1.2,Math.min(1.2,walk.pitch-(e.clientY-walk.look.y)*0.0045));walk.look={x:e.clientX,y:e.clientY};return;}
   if(!drag){if(e.buttons===0&&e.pointerType==='mouse'&&!hoverPending){hoverPending=true;requestAnimationFrame(()=>{hoverPending=false;setNdc(e);
     if(ray.intersectObjects(items.map(i=>i.obj),true).length){canvas.style.cursor='grab';return;}const oh=ray.intersectObjects(wallGroup.children,true)[0];canvas.style.cursor=oh&&oh.object.userData.opIdx!=null?'pointer':'';});}return;}setNdc(e);const p=floorHit();if(!p)return;
   let x=p.x+drag.dx,z=p.z+drag.dz;
@@ -554,12 +608,13 @@ canvas.addEventListener('pointermove',e=>{
   drag.moved=true;placeObj(drag.it);updateSel();
 });
 function endDrag(e){
-  if(drag){const moved=drag.moved;drag=null;controls.enabled=true;if(moved){renderInsp();save();}}
+  walk.look=null;
+  if(drag){const moved=drag.moved;drag=null;controls.enabled=!walk.active;if(moved){renderInsp();save();}}
   else if(down&&e&&Math.hypot(e.clientX-down.x,e.clientY-down.y)<5){setNdc(e);const hits=ray.intersectObjects(items.map(i=>i.obj),true);
     if(!hits.length){const oh=ray.intersectObjects(wallGroup.children,true)[0];if(oh&&oh.object.userData.opIdx!=null)toggleOpening(oh.object.userData.opIdx);else select(null);}}
   down=null;
 }
-canvas.addEventListener('pointerup',endDrag);canvas.addEventListener('pointercancel',()=>{drag=null;controls.enabled=true;down=null;});
+canvas.addEventListener('pointerup',endDrag);canvas.addEventListener('pointercancel',()=>{drag=null;walk.look=null;controls.enabled=!walk.active;down=null;});
 
 const controls=new THREE.OrbitControls(camera,canvas);
 controls.enableDamping=true;controls.dampingFactor=0.08;controls.maxPolarAngle=Math.PI*0.495;controls.minDistance=0.5;controls.maxDistance=40;
@@ -1065,16 +1120,14 @@ tabs.forEach(([t,p])=>$('#'+t).onclick=()=>tabs.forEach(([t2,p2])=>{$('#'+t2).se
 let anim=null;
 function fly(pos,tgt,dur){const p0=camera.position.clone(),t0=controls.target.clone(),st=performance.now();dur=matchMedia('(prefers-reduced-motion: reduce)').matches?0:(dur||600);
   anim=now=>{const k=dur?Math.min(1,(now-st)/dur):1,e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;camera.position.lerpVectors(p0,pos,e);controls.target.lerpVectors(t0,tgt,e);if(k>=1)anim=null;};}
-function setView(v){view=v;['v3d','vtop','veye'].forEach(id=>$('#'+id).setAttribute('aria-pressed',id==='v'+v));
+function setView(v){if(v!=='eye')exitWalk();view=v;['v3d','vtop','veye'].forEach(id=>$('#'+id).setAttribute('aria-pressed',id==='v'+v));
   items.forEach(i=>{if(i.def.mount==='ceil')i.obj.visible=v!=='top';});}
 function fitDist(){const t=Math.tan(camera.fov*Math.PI/360);const a=camera.aspect||1;return Math.max(SPANZ*1.12/(2*t),SPANX*1.12/(2*t*a));}
 function iso(){const k=Math.max(0.6,fitDist()/16);return new THREE.Vector3(9.5*k,13*k,13*k);}
 function fitCamera(){setView('3d');camera.position.copy(iso());controls.target.set(0,0,0);}
 function view3d(){setView('3d');fly(iso(),new THREE.Vector3(0,0,0));}
 function viewTop(){setView('top');fly(new THREE.Vector3(0,fitDist(),0.01),new THREE.Vector3(0,0,0));}
-function eyeView(r){setView('eye');r=r||ROOMS.find(x=>x.id===$('#room').value)||ROOMS[0];const m=r.m;
-  const cx=(m[0]+m[1])/2,cz=(m[2]+m[3])/2;fly(new THREE.Vector3(m[0]+0.35+(m[1]-m[0])*0.05,1.55,m[3]-0.35),new THREE.Vector3(cx+(m[1]-m[0])*0.15,1.1,cz-(m[3]-m[2])*0.15));
-  if(wallCap<3)setWalls(3);}
+function eyeView(r){setView('eye');enterWalk(r);}
 $('#v3d').onclick=view3d;$('#vtop').onclick=viewTop;$('#veye').onclick=()=>eyeView();
 function setWalls(h){wallCap=h;buildWalls();$('#wcut').setAttribute('aria-pressed',h<3);$('#wfull').setAttribute('aria-pressed',h>=3);}
 $('#wcut').onclick=()=>setWalls(1.2);$('#wfull').onclick=()=>setWalls(3);
@@ -1091,12 +1144,12 @@ let lastHome=null;try{lastHome=localStorage.getItem(KEYP+'last');}catch(_){}
 switchHome(lastHome);
 let lastT=0;
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(0.05,(now-(lastT||now))/1000);lastT=now;if(anim)anim(now);
-  const rm=matchMedia('(prefers-reduced-motion: reduce)').matches;for(let i=0;i<opParts.length;i++){if(opCur[i]!==opTarget[i]){const d=opTarget[i]-opCur[i],st=rm?1:dt*1.8;opCur[i]=Math.abs(d)<=st?opTarget[i]:opCur[i]+Math.sign(d)*st;const c=Math.abs(opCur[i]),e=Math.sign(opCur[i])*c*c*(3-2*c);opParts[i].apply(e);}}controls.update();renderer.render(scene,camera);}
+  const rm=matchMedia('(prefers-reduced-motion: reduce)').matches;for(let i=0;i<opParts.length;i++){if(opCur[i]!==opTarget[i]){const d=opTarget[i]-opCur[i],st=rm?1:dt*1.8;opCur[i]=Math.abs(d)<=st?opTarget[i]:opCur[i]+Math.sign(d)*st;const c=Math.abs(opCur[i]),e=Math.sign(opCur[i])*c*c*(3-2*c);opParts[i].apply(e);}}if(walk.active)walkStep(dt);else controls.update();renderer.render(scene,camera);}
 requestAnimationFrame(loop);
 $('#loading').hidden=true;
 renderFin();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{buildLabels();buildStatic();});
-window.__planner={items:()=>items,status,select,addFromCatalogue};
+window.__planner={items:()=>items,status,select,addFromCatalogue,walkTest:{blocked,freeSpot,wx,wz,rooms:()=>ROOMS,ops:()=>OPENINGS,setOp:(i,v)=>{opTarget[i]=v;}}};
 })();
 </script>
 

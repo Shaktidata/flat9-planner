@@ -79,21 +79,35 @@ const fixtures=[
  {type:'counter',r:[t_x0+300,kit_x1,mid_y1-600,mid_y1],h:900},
  {type:'counter',r:[kit_x1-600,kit_x1,mid_y0,mid_y1-600],h:900,sink:[kit_x1-300,mid_y1-1100],hob:[kit_x1-300,mid_y0+700]}
 ];
-const tvY=liv_y1-1400;
+// starting furniture, as arranged by the owner (plan mm; f:1 = applied when the layout updates)
 const sample=[
- ['g-tv55',living_x1-30,tvY,270,0.95],['g-tvunit',living_x1-200,tvY,270],['ps-sofabed',living_x1-3500,tvY,90],
- ['ps-rug',living_x1-2000,tvY,0],['ps-sidetable',living_x1-3500,tvY-1300,90],['g-ac',living_x0+1150,liv_y1-115,0,2.15],
- ['g-fan',(living_x0+living_x1)/2,(E+liv_y1)/2,0],['ps-uplighter',living_x0+250,liv_y1-250,0],
- ['ps-set2',kit_x0+2300,mid_y0+1400,90],['ps-pendant',kit_x0+2300,mid_y0+1400,0],['g-fridge2',kit_x1-1020,mid_y0+370,180],
- ['g-queen',mb_x1-1065,mbed_y0+2250,270],['ps-bedside',mb_x1-150,mbed_y0+2250-970,270],['ps-bedside',mb_x1-150,mbed_y0+2250+970,270],
- ['g-ward2',A+290,mbed_y1-600,90],['g-ac',(A+mb_x1)/2,mbed_y1-115,0,2.15],['g-fan',(A+mb_x1)/2,(mbed_y0+mbed_y1)/2,0],
- ['g-single',bed1_x1-990,sit_y1-1200,270],['g-desk',bed1_x0+300,sit_y1-1500,90],['ps-chair',bed1_x0+850,sit_y1-1500,270],
- ['g-ac',bed1_x0+1600,sit_y1-115,0,2.15],
- ['g-queen',(E+sw0)/2,mid_y0+1065,180]
-].map(a=>({id:a[0],x:a[1],y:a[2],r:a[3],e:a[4]}));
+  {id:'g-tv55',x:8850,y:2183,r:270,e:0.95,vi:0,f:1},
+  {id:'g-tvunit',x:8680,y:2183,r:270,e:0,vi:0,f:1},
+  {id:'ps-sofabed',x:5075,y:2223,r:90,e:0,vi:0,f:1},
+  {id:'ps-rug',x:6880,y:2183,r:0,e:0,vi:0,f:1},
+  {id:'ps-sidetable',x:5380,y:883,r:90,e:0,vi:0,f:1},
+  {id:'g-ac',x:4543,y:3468,r:0,e:2.15,vi:0,f:1},
+  {id:'g-fan',x:6137,y:1906,r:0,e:2.6,vi:0,f:1},
+  {id:'ps-uplighter',x:3643,y:3333,r:0,e:0,vi:0,f:1},
+  {id:'ps-set2',x:6608,y:5213,r:90,e:0,vi:0,f:1},
+  {id:'ps-pendant',x:6608,y:5213,r:0,e:1.9,vi:0,f:1},
+  {id:'g-fridge2',x:7860,y:4183,r:180,e:0,vi:0,f:1},
+  {id:'g-queen',x:2725,y:10283,r:270,e:0,vi:0,f:1},
+  {id:'ps-bedside',x:4043,y:9590,r:270,e:0,vi:0,f:1},
+  {id:'ps-bedside',x:4043,y:11530,r:270,e:0,vi:0,f:1},
+  {id:'g-ward2',x:1130,y:11977,r:90,e:0,vi:0,f:1},
+  {id:'g-ac',x:2516,y:12462,r:0,e:2.15,vi:0,f:1},
+  {id:'g-fan',x:2516,y:10443,r:0,e:2.6,vi:0,f:1},
+  {id:'g-single',x:6518,y:13016,r:270,e:0,vi:0,f:1},
+  {id:'g-desk',x:4608,y:12716,r:90,e:0,vi:0,f:1},
+  {id:'ps-chair',x:5158,y:12716,r:270,e:0,vi:0,f:1},
+  {id:'g-ac',x:5908,y:14101,r:0,e:2.15,vi:0,f:1},
+  {id:'g-queen',x:2325,y:5573,r:180,e:0,vi:0,f:1},
+  {id:'ps-foldchair',x:1705,y:2833,r:0,e:0,vi:0,f:1}
+];
 
 (window.PLANNER_PROPERTIES=window.PLANNER_PROPERTIES||[]).push({
-  id:'flat9', name:'Flat 9', subtitle:'Pune · 3 bedrooms · marble floors · 9″ brick walls', ceiling:H,
+  id:'flat9', name:'Flat 9', sampleVersion:2, subtitle:'Pune · 3 bedrooms · marble floors · 9″ brick walls', ceiling:H,
   compass:{up:'East',down:'West',left:'North',right:'South'},
   walls, openings, rooms, fixtures, sample
 });

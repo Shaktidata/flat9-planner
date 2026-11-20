@@ -12,11 +12,12 @@ const bayX1=xr+1570, bayX2=bayX1+209;                   // living-room side bay
 const balY0=175, balY1=balY0+2575, livY0=balY1+150;     // balcony, sliding door wall SW4
 const kitY0=livY0+4225;                                  // ceiling-line where the kitchen starts
 const d9Y0=7430, d9Y1=d9Y0+IW, stY1=7990, bathY0=stY1+IW;// D9 doors, linen/broom store, bathroom
-const bayY1=7436, bedWallY0=11940, bedY0=bedWallY0+IW, bedY1=bedY0+2650, topY1=bedY1+PW;
+// the plain bench and the kitchen/bath wall end in line with the living-room cupboard front
+const benchY0=7430, bayY1=7436, bedWallY0=11940, bedY0=bedWallY0+IW, bedY1=bedY0+2650, topY1=bedY1+PW;
 
 const W=(x0,x1,y0,y1,o)=>Object.assign({r:[x0,x1,y0,y1],h:H,kind:'wall'},o||{});
 const wLeft=W(0,PW,75,topY1), wTop=W(0,xr+EW,bedY1,topY1), wRightMain=W(xr,xr+EW,bayY1,topY1);
-const wBedS=W(x0,xr,bedWallY0,bedY0), wKB=W(kx1,bx0,d9Y0,bedWallY0), wBathS=W(kx1,xr,stY1,bathY0), wD9=W(kx1,xr,d9Y0,d9Y1);
+const wBedS=W(x0,xr,bedWallY0,bedY0), wKB=W(kx1,bx0,benchY0,bedWallY0), wBathS=W(kx1,xr,stY1,bathY0), wD9=W(kx1,xr,d9Y0,d9Y1);
 const wSW4=W(x0,bayX2,balY1,livY0), wBayTop=W(xr,bayX2,bayY1,bayY1+EW), wBayR=W(bayX1,bayX2,balY1,bayY1+EW);
 const balX1=x0+3810;                                   // balcony is 3810 wide, past the main wall line
 const wBalR=W(balX1,balX1+250,balY1-500,balY1);           // short column by the living-room wall
@@ -25,8 +26,12 @@ const rBal=W(x0,balX1,75,balY0,{h:1000,kind:'rail',style:'metal'}), rBalR=W(balX
 const pY0=10400,pY1=11000,pD=600;
 const wRobe=W(x0+575,x0+600,bedY0,bedY1);                // robe front: 3 sliding doors under a bulkhead
 const wCab=W(x0+325,x0+343,7230,pY0,{h:2250,z0:1500});        // wall-cabinet front above the bench (5 doors)
+const wBench=W(kx1-600,kx1-582,benchY0,10400,{h:860,z0:100}); // plain bench front: 4 cabinet doors
+// tall cupboard opposite the fridge, between the bathroom door (D4) and the corner: 2 doors, 3 levels
+const cbY0=11250, cbY1=bedWallY0-10, cbD=450, cbH=1750, cbX=kx1-cbD;
+const wCupF=W(cbX,cbX+18,cbY0+18,cbY1-18,{h:cbH,z0:20});
 const wPanS=W(x0,x0+pD,pY0,pY0+25,{h:2100}), wPanN=W(x0,x0+pD,pY1-25,pY1,{h:2100}), wPanF=W(x0+pD-25,x0+pD,pY0+25,pY1-25,{h:2100});
-const walls=[wLeft,wTop,wRightMain,wBedS,wKB,wBathS,wD9,wSW4,wBayTop,wBayR,wBalR,rBal,rBalR,wPanS,wPanN,wPanF,wRobe,wCab];
+const walls=[wLeft,wTop,wRightMain,wBedS,wKB,wBathS,wD9,wSW4,wBayTop,wBayR,wBalR,rBal,rBalR,wPanS,wPanN,wPanF,wRobe,wCab,wBench,wCupF];
 
 const ow=(w,a0,a1,o)=>{const r=w.r,hz=(r[1]-r[0])>=(r[3]-r[2]);return Object.assign({wall:w,r:hz?[a0,a1,r[2],r[3]]:[r[0],r[1],a0,a1],z:[0,DH]},o);};
 const hi=[1600,2100];
@@ -43,9 +48,13 @@ const openings=[
    return ow(wRobe,a,a+L,{type:'slide1',z:[0,2400],panel:'#ece8df',track:k===1?-1:1,dir:k===2?-1:1,ways:k===1?2:1,label:'Robe door '+(k+1)});}),
  ...[0,1,2,3,4].map(k=>{const L=(pY0-7230)/5,a=7230+k*L;
    return ow(wCab,a+2,a+L-2,{type:'door',cab:true,hinge:['a','b','a','a','b'][k],swing:1,z:[1500,2250],color:'#ece8df',label:'Cabinet door '+(k+1)});}),
+ ...[0,1].map(k=>{const L=(cbY1-cbY0-36)/2,a=cbY0+18+k*L;
+   return ow(wCupF,a+2,a+L-2,{type:'door',cab:true,hinge:k?'b':'a',swing:-1,z:[20,cbH],color:'#ece8df',label:'Kitchen cupboard door '+(k+1)});}),
  ow(wPanF,pY0+30,pY1-30,{type:'door',hinge:'a',swing:1,z:[0,2050],label:'D6 pantry',color:'#e7e1d6'}),
- ow(wD9,bx0+20,bx0+725,{type:'door',hinge:'a',swing:-1,label:'D9'}),
- ow(wD9,bx0+725,xr-20,{type:'door',hinge:'b',swing:-1,label:'D9'})
+ ...[0,1,2].map(k=>{const L=(xr-20-(bx0+20))/3,a=bx0+20+k*L;
+   return ow(wD9,a+2,a+L-2,{type:'door',cab:true,hinge:['a','b','b'][k],swing:-1,z:[0,H-100],color:'#f4f3ef',label:'Cupboard door '+(k+1)});}),
+ ...[0,1,2,3].map(k=>{const L=(10400-benchY0)/4,a=benchY0+k*L;
+   return ow(wBench,a+2,a+L-2,{type:'door',cab:true,hinge:['a','b','a','b'][k],swing:-1,z:[100,860],color:'#ece8df',label:'Bench cabinet door '+(k+1)});})
 ];
 const rooms=[
  {id:'living',name:'Living / dining',size:'26.91 m²',r:[x0,xr,livY0,kitY0],extra:[[xr,bayX1,livY0,bayY1],[kx1,xr,kitY0,d9Y0]]},
@@ -61,29 +70,50 @@ const fixtures=[
  ...[400,800,1200,1600].map(z=>({type:'box',r:[x0,x0+pD-25,pY0+25,pY1-25],z0:z,h:20,color:'#e7e1d6',label:'Pantry shelf'})),
  ...[[1500,18],[1866,15],[2232,18]].map(([z,h])=>({type:'box',r:[x0,x0+325,7230,pY0],z0:z,h,color:'#e7e1d6',label:'Wall cabinet shelf'})),
  {type:'box',r:[x0,x0+325,7230,7248],z0:1500,h:750,color:'#e7e1d6',label:'Wall cabinet end'},{type:'box',r:[x0,x0+325,pY0-18,pY0],z0:1500,h:750,color:'#e7e1d6',label:'Wall cabinet end'},
- {type:'counter',r:[kx1-600,kx1,7230,pY0],h:900,top:'statuario',label:'Second bench'},
+ {type:'counter',r:[kx1-600,kx1,benchY0,pY0],h:900,top:'statuario',hollow:true,label:'Second bench'},
+ {type:'box',r:[kx1-582,kx1,benchY0+18,pY0-18],z0:460,h:18,color:'#e7e1d6',label:'Bench cabinet shelf'},
  {type:'counter',r:[x0,x0+600,7230,10400],h:900,top:'statuario',hob:[x0+300,(7230+pY0)/2],sink:[x0+300,7720],label:'Kitchen bench'},
  {type:'box',r:[x0+600,x0+618,7720-298,7720+298],z0:90,h:770,color:'#c3c7cb',label:'Dishwasher (under sink)'},
  {type:'box',r:[x0+618,x0+624,7720-250,7720+250],z0:780,h:50,color:'#2b2d30',label:'Dishwasher controls'},
- {type:'box',r:[bx0,xr,d9Y1,stY1],h:2100,color:'#e7e1d6',label:'Broom & linen cupboards'},
+ ...[350,850,1350,1850,2300].map(z=>({type:'box',r:[bx0,xr,d9Y1,stY1],z0:z,h:20,color:'#f4f3ef',clip:true,label:'Linen cupboard shelf'})),
+ {type:'box',r:[cbX,kx1,cbY0,cbY0+18],h:cbH,color:'#e7e1d6',label:'Kitchen cupboard side'},{type:'box',r:[cbX,kx1,cbY1-18,cbY1],h:cbH,color:'#e7e1d6',label:'Kitchen cupboard side'},
+ {type:'box',r:[cbX,kx1,cbY0+18,cbY1-18],h:20,color:'#e7e1d6',label:'Kitchen cupboard base'},
+ ...[600,1170,cbH-18].map(z=>({type:'box',r:[cbX+18,kx1,cbY0+18,cbY1-18],z0:z,h:18,color:'#e7e1d6',label:'Kitchen cupboard shelf'})),
  {type:'box',r:[bx0+20,bx0+640,11300,bedWallY0],h:850,color:'#f2f3f5',label:'Washer/dryer'},
  {type:'counter',r:[xr-640,xr,11400,bedWallY0],h:900,sink:[xr-320,11670],label:'Laundry tub'},
  {type:'counter',r:[xr-460,xr,10150,10950],h:850,sink:[xr-230,10550],label:'Vanity'},
  {type:'box',r:[xr-420,xr,9250,9650],h:420,color:'#fbfbfb',label:'Toilet'},
  {type:'box',r:[bx0+10,xr,bathY0,bathY0+950],h:30,color:'#cfd4d8',label:'Shower'}
 ];
-const w9x=(bayX1-(1570+650)/2+bayX1-(1570-650)/2)/2;     // centre of the small window W9
+// starting furniture, as arranged by the owner (plan mm; f:1 = applied when the layout updates)
 const sample=[
- ['g-tvunit',bayX1-200,5600,270,0,1,1],['g-tv55s',bayX1-200,5600,270,0.45,0,1],['g-lsofa',x0+2450,5300,90,0,0,1],
- ['ps-rug',x0+3150,5600,0],['g-shoerack',x0+160,(6820+7230)/2,90,0,0,1],['g-cubeshelf',x0+175,livY0+400,90],['g-ac',x0+115,livY0+650,90,2.15,0,1],
- ['g-dining4',x0+900,4000,0],['g-dchair',x0+600,3300,180],['g-dchair',x0+1200,3300,180],['g-dchair',x0+600,4700,0],['g-dchair',x0+1200,4700,0],
- ['g-desk',w9x,livY0+300,180,0,0,1],['g-office',w9x,livY0+950,0,0,0,1],
- ['g-fridge2',x0+360,11500,90],['g-queen',xr-1065,13700,270],['ps-bedside',xr-150,12730,270],
- ['ps-easybirch',x0+800,1500,45],['g-plant',balX1-350,500,0]
-].map(a=>({id:a[0],x:a[1],y:a[2],r:a[3],e:a[4]||undefined,vi:a[5]||0,f:a[6]?1:0}));
+  {id:'g-tvunit',x:5180,y:5600,r:270,e:0,vi:1,f:1},
+  {id:'g-tv55s',x:5180,y:5600,r:270,e:0.45,vi:0,f:1},
+  {id:'g-lsofa',x:2700,y:5300,r:90,e:0,vi:0,f:1},
+  {id:'ps-rug',x:3675,y:5613,r:0,e:0,vi:0,f:1},
+  {id:'g-shoerack',x:410,y:7026,r:90,e:0,vi:0,f:1},
+  {id:'g-cubeshelf',x:425,y:3300,r:90,e:0,vi:0,f:1},
+  {id:'g-ac',x:366,y:3550,r:90,e:2.15,vi:0,f:1},
+  {id:'g-dining4',x:745,y:4623,r:90,e:0,vi:0,f:1},
+  {id:'g-dchair',x:745,y:4203,r:180,e:0,vi:1,f:1},
+  {id:'g-dchair',x:955,y:4603,r:270,e:0,vi:1,f:1},
+  {id:'g-dchair',x:575,y:4683,r:90,e:0,vi:1,f:1},
+  {id:'g-dchair',x:755,y:5073,r:0,e:0,vi:1,f:1},
+  {id:'g-desk',x:4595,y:3200,r:180,e:0,vi:0,f:1},
+  {id:'g-office',x:4595,y:3850,r:0,e:0,vi:0,f:1},
+  {id:'g-fridge2',x:655,y:11453,r:90,e:0,vi:0,f:1},
+  {id:'g-queen',x:2580,y:13635,r:0,e:0,vi:0,f:1},
+  {id:'g-nightstand',x:1570,y:14500,r:0,e:0,vi:0,f:1},
+  {id:'g-nightstand',x:3590,y:14500,r:0,e:0,vi:0,f:1},
+  {id:'g-tablelamp',x:1570,y:14491,r:0,e:0.45,vi:0,f:1},
+  {id:'g-books',x:3590,y:14491,r:0,e:0.45,vi:0,f:1},
+  {id:'g-grass',x:2155,y:1463,r:0,e:0,vi:0,f:1},
+  {id:'g-bistro',x:2155,y:1612,r:0,e:0,vi:0,f:1},
+  {id:'g-plant',x:600,y:500,r:0,e:0,vi:0,f:1}
+];
 
 (window.PLANNER_PROPERTIES=window.PLANNER_PROPERTIES||[]).push({
-  id:'unit10', name:'Unit 10', sampleVersion:6, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
+  id:'unit10', name:'Unit 10', sampleVersion:9, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
   finishes:{wall:'#f7f7f5',
     floor:{living:'solid-wood',kitchen:'solid-wood',store:'solid-wood',bed1:'carpet',bath:'grey-tile',balcony:'grey-granite'},
     tile:{bath:'1x1',balcony:'2x2'}},

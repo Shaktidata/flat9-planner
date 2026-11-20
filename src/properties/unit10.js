@@ -70,7 +70,7 @@ const fixtures=[
  {type:'counter',r:[x0,x0+600,7230,10400],h:900,top:'statuario',hob:[x0+300,(7230+pY0)/2],sink:[x0+300,7720],label:'Kitchen bench'},
  {type:'box',r:[x0+600,x0+618,7720-298,7720+298],z0:90,h:770,color:'#c3c7cb',label:'Dishwasher (under sink)'},
  {type:'box',r:[x0+618,x0+624,7720-250,7720+250],z0:780,h:50,color:'#2b2d30',label:'Dishwasher controls'},
- ...[350,850,1350,1850,2300].map(z=>({type:'box',r:[bx0,xr,d9Y1,stY1],z0:z,h:20,color:'#f4f3ef',label:'Linen cupboard shelf'})),
+ ...[350,850,1350,1850,2300].map(z=>({type:'box',r:[bx0,xr,d9Y1,stY1],z0:z,h:20,color:'#f4f3ef',clip:true,label:'Linen cupboard shelf'})),
  {type:'box',r:[bx0+20,bx0+640,11300,bedWallY0],h:850,color:'#f2f3f5',label:'Washer/dryer'},
  {type:'counter',r:[xr-640,xr,11400,bedWallY0],h:900,sink:[xr-320,11670],label:'Laundry tub'},
  {type:'counter',r:[xr-460,xr,10150,10950],h:850,sink:[xr-230,10550],label:'Vanity'},
@@ -84,11 +84,11 @@ const sample=[
  ['g-dining4',x0+900,4000,0],['g-dchair',x0+600,3300,180],['g-dchair',x0+1200,3300,180],['g-dchair',x0+600,4700,0],['g-dchair',x0+1200,4700,0],
  ['g-desk',w9x,livY0+300,180,0,0,1],['g-office',w9x,livY0+950,0,0,0,1],
  ['g-fridge2',x0+360,11500,90],['g-queen',xr-1065,13700,270],['ps-bedside',xr-150,12730,270],
- ['ps-easybirch',x0+800,1500,45],['g-plant',balX1-350,500,0]
+ ['g-grass',(x0+balX1)/2,(balY0+balY1)/2,0,0,0,1],['g-bistro',(x0+balX1)/2,(balY0+balY1)/2+150,0,0,0,1],['g-plant',x0+350,500,0,0,0,1]
 ].map(a=>({id:a[0],x:a[1],y:a[2],r:a[3],e:a[4]||undefined,vi:a[5]||0,f:a[6]?1:0}));
 
 (window.PLANNER_PROPERTIES=window.PLANNER_PROPERTIES||[]).push({
-  id:'unit10', name:'Unit 10', sampleVersion:6, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
+  id:'unit10', name:'Unit 10', sampleVersion:7, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
   finishes:{wall:'#f7f7f5',
     floor:{living:'solid-wood',kitchen:'solid-wood',store:'solid-wood',bed1:'carpet',bath:'grey-tile',balcony:'grey-granite'},
     tile:{bath:'1x1',balcony:'2x2'}},

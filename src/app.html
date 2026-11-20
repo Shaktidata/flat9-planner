@@ -147,7 +147,7 @@ a{color:var(--accent)}
       <div class="swatches" id="floor-sw"></div>
       <div class="field"><label>Tile size</label>
         <div class="seg" role="group" aria-label="Tile size" id="tsize"></div></div>
-      <div class="field" style="margin-top:6px"><label>Wall paint — whole flat</label></div>
+      <div class="field" style="margin-top:6px"><label>Wall paint — whole home</label></div>
       <div class="swatches" id="wall-sw"></div>
       <div class="row"><label for="wcustom" class="note">Custom colour</label><input type="color" id="wcustom" value="#f4f2ec"></div>
       <div class="row"><button class="btn sm" id="fin-reset">Back to white marble &amp; whitewash</button></div>
@@ -364,7 +364,10 @@ const FLOORS=[
  {id:'black-granite',n:'Black granite',k:'speck',base:'#2b2a29',spk:['#4a4846','#151414','#6a6763'],grout:'#1d1c1b'},
  {id:'ivory-vit',n:'Ivory vitrified',k:'plain',base:'#ece6d8',grout:'#d4ccb9'},
  {id:'wood',n:'Wood-look plank',k:'wood',base:'#a8794f',grout:'#7b5536'},
- {id:'terracotta',n:'Terracotta',k:'plain',base:'#b4643f',grout:'#8d4a2e'}
+ {id:'terracotta',n:'Terracotta',k:'plain',base:'#b4643f',grout:'#8d4a2e'},
+ {id:'solid-wood',n:'Solid timber',k:'wood',base:'#b3844f',grout:'#80592f'},
+ {id:'grey-tile',n:'Grey tile',k:'plain',base:'#a3a5a7',grout:'#86888a'},
+ {id:'carpet',n:'Carpet',k:'carpet',base:'#bdb3a4'}
 ];
 const TILES=[{id:'1x1',n:'1′×1′',w:0.3048,d:0.3048},{id:'2x2',n:'2′×2′',w:0.6096,d:0.6096},{id:'4x2',n:'4′×2′',w:1.2192,d:0.6096}];
 const texCache={};
@@ -373,6 +376,7 @@ function floorCanvas(fid,size){
   const cv=document.createElement('canvas');cv.width=cv.height=N;const g=cv.getContext('2d');const R=rng(fid.length*977+N);
   g.fillStyle=f.base;g.fillRect(0,0,N,N);
   const half=N/2;
+  if(f.k==='carpet'){for(let i=0;i<9000;i++){g.fillStyle=R()<0.5?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.08)';g.fillRect(R()*N,R()*N,1.5,1.5);}return cv;}
   if(f.k==='wood'){
     for(let row=0;row<4;row++){const y0=row*N/4,off=(row%2)*N/2;
       g.fillStyle=`rgba(${R()<.5?'60,35,15':'255,235,210'},${0.05+R()*0.08})`;g.fillRect(0,y0,N,N/4);
@@ -397,7 +401,7 @@ function floorTex(fid){if(!texCache[fid]){const t=new THREE.CanvasTexture(floorC
 const flat=new THREE.Group();scene.add(flat);
 let wallGroup=new THREE.Group(),labelGroup=new THREE.Group(),staticGroup=new THREE.Group();flat.add(wallGroup,labelGroup,staticGroup);
 let floorMeshes={},DEFAULT_FIN,fin,wallCap=1.2,labelsOn=true;
-function defaultFin(){const d={floor:{},tile:{},wall:'#f4f2ec'};ROOMS.forEach(r=>{d.floor[r.id]=r.out?'terracotta':'white-marble';d.tile[r.id]=r.out?'1x1':'2x2';});return d;}
+function defaultFin(){const pf=P.finishes||{},pfl=pf.floor||{},pt=pf.tile||{};const d={floor:{},tile:{},wall:pf.wall||'#f4f2ec'};ROOMS.forEach(r=>{d.floor[r.id]=pfl[r.id]||(r.out?'terracotta':'white-marble');d.tile[r.id]=pt[r.id]||(r.out?'1x1':'2x2');});return d;}
 const wallMat=new THREE.MeshStandardMaterial({color:new THREE.Color('#f4f2ec').convertSRGBToLinear(),roughness:0.95});
 const capMat=new THREE.MeshStandardMaterial({color:0x8d8a84,roughness:0.9});
 const glassMat=new THREE.MeshStandardMaterial({color:0x9cc7e6,transparent:true,opacity:0.32,roughness:0.1,metalness:0.1});
@@ -428,9 +432,9 @@ function buildFloors(){
     const fid=fin.floor[r.id]||'white-marble',tile=TILES.find(t=>t.id===fin.tile[r.id])||TILES[1];
     r.rects.forEach(rc=>{const w=(rc[1]-rc[0])/1000,d=(rc[3]-rc[2])/1000;
       const tex=floorTex(fid).clone();tex.needsUpdate=true;
-      const tw=fid==='wood'?1.2192:tile.w,td=fid==='wood'?0.2032:tile.d;
+      const fk=(FLOORS.find(f=>f.id===fid)||{}).k,tw=fk==='wood'?1.2192:fk==='carpet'?2:tile.w,td=fk==='wood'?0.2032:fk==='carpet'?2:tile.d;
       tex.repeat.set(w/(2*tw),d/(2*td));tex.offset.set(((rc[0]/1000)/(2*tw))%1,((rc[2]/1000)/(2*td))%1);
-      const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshStandardMaterial({map:tex,roughness:/marble|statuario|granite/.test(fid)?0.35:0.8,metalness:0}));
+      const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshStandardMaterial({map:tex,roughness:/marble|statuario|granite/.test(fid)?0.35:fid==='carpet'?1:0.8,metalness:0}));
       m.rotation.x=-Math.PI/2;m.position.set(wx((rc[0]+rc[1])/2),0.002,wz((rc[2]+rc[3])/2));m.receiveShadow=true;flat.add(m);floorMeshes[r.id].push(m);});
   });
 }
@@ -442,7 +446,15 @@ function wallPieces(w){
   if(cur<a1)pcs.push([cur,a1,0,h]);
   return pcs.map(p=>hz?[p[0],p[1],ya,yb,p[2],p[3]]:[xa,xb,p[0],p[1],p[2],p[3]]);
 }
-function railGroup(w){const [xa,xb,ya,yb]=w.r,hz=isHoriz(w.r),L=(hz?xb-xa:yb-ya)/1000,T=(hz?yb-ya:xb-xa)/1000,h=(w.h||1050)/1000;
+function railGroup(w){if(w.style==='metal')return metalRail(w);return glassRail(w);}
+function metalRail(w){const [xa,xb,ya,yb]=w.r,hz=isHoriz(w.r),L=(hz?xb-xa:yb-ya)/1000,h=(w.h||1000)/1000;
+  const g=new THREE.Group();g.position.set(wx((xa+xb)/2),0,wz((ya+yb)/2));if(!hz)g.rotation.y=Math.PI/2;
+  const m=mat('#4a4f55',{metalness:.75,roughness:.35});
+  boxAt(g,L,0.05,0.05,0,h-0.025,0,m);boxAt(g,L,0.03,0.03,0,0.1,0,m);
+  const n=Math.max(2,Math.round(L/0.11));for(let i=0;i<=n;i++)boxAt(g,0.018,h-0.06,0.018,-L/2+0.02+i*(L-0.04)/n,0.03+(h-0.06)/2,0,m,false);
+  [-1,1].forEach(k=>boxAt(g,0.05,h,0.05,k*(L/2-0.025),h/2,0,m));
+  return g;}
+function glassRail(w){const [xa,xb,ya,yb]=w.r,hz=isHoriz(w.r),L=(hz?xb-xa:yb-ya)/1000,T=(hz?yb-ya:xb-xa)/1000,h=(w.h||1050)/1000;
   const g=new THREE.Group();g.position.set(wx((xa+xb)/2),0,wz((ya+yb)/2));if(!hz)g.rotation.y=Math.PI/2;
   boxAt(g,L,0.1,T,0,0.05,0,wallMat);boxAt(g,L,h-0.16,0.012,0,0.1+(h-0.16)/2,0,glassMat,false);boxAt(g,L,0.05,0.06,0,h-0.025,0,frameMat);
   const n=Math.max(2,Math.round(L/1.2));for(let i=0;i<=n;i++)boxAt(g,0.04,h-0.1,0.04,-L/2+0.02+i*(L-0.04)/n,0.1+(h-0.1)/2,0,frameMat);
@@ -510,7 +522,7 @@ function textTex(lines,dark,single){const cv=document.createElement('canvas');cv
 function buildLabels(){
   clearGroup(labelGroup);labelGroup.visible=labelsOn;
   ROOMS.forEach(r=>{if(r.label===false)return;const [a,b,c,d]=r.r;const w=(b-a)/1000,dd=(d-c)/1000;
-    const dark=['black-granite','grey-granite','wood','terracotta'].includes(fin.floor[r.id]);
+    const fb=(FLOORS.find(f=>f.id===fin.floor[r.id])||FLOORS[0]).base,cl=new THREE.Color(fb),dark=(0.2126*cl.r+0.7152*cl.g+0.0722*cl.b)<0.42;
     const lw=Math.min(w*0.9,r.out?1.6:2.0),lh=lw*160/512;
     const m=new THREE.Mesh(new THREE.PlaneGeometry(lw,lh),new THREE.MeshBasicMaterial({map:textTex([r.name,r.size],dark),transparent:true,depthWrite:false}));
     m.rotation.x=-Math.PI/2;m.position.set(wx((a+b)/2),0.008,wz((c+d)/2)+(dd>2.5?dd*0.18:0));m.renderOrder=1;labelGroup.add(m);});
@@ -694,7 +706,7 @@ addEventListener('keydown',e=>{
 
 /* ================= CATALOGUE UI ================= */
 let srcF='all',catF='all';
-function fillRoomMenus(){$('#room').innerHTML=ROOMS.filter(r=>r.id!=='passage').map(r=>`<option value="${r.id}">${esc(r.name)}${r.size?' · '+r.size:''}</option>`).join('');scopeSel.innerHTML='<option value="indoor">All indoor rooms</option><option value="all">Every room, incl. outdoor areas</option>'+ROOMS.filter(r=>r.label!==false).map(r=>`<option value="${r.id}">${esc(r.name)}${r.size?' · '+r.size:''}</option>`).join('');}
+function fillRoomMenus(){$('#room').innerHTML=ROOMS.filter(r=>r.label!==false).map(r=>`<option value="${r.id}">${esc(r.name)}${r.size?' · '+r.size:''}</option>`).join('');scopeSel.innerHTML='<option value="indoor">All indoor rooms</option><option value="all">Every room, incl. outdoor areas</option>'+ROOMS.filter(r=>r.label!==false).map(r=>`<option value="${r.id}">${esc(r.name)}${r.size?' · '+r.size:''}</option>`).join('');}
 $('#room').onchange=()=>{const r=ROOMS.find(x=>x.id===$('#room').value);if(r&&view==='eye')eyeView(r);};
 function chips(el,opts,get,set){el.innerHTML=opts.map(o=>`<button class="chip" data-v="${o[0]}" aria-pressed="${get()===o[0]}">${o[1]}</button>`).join('');
   el.querySelectorAll('button').forEach(b=>b.onclick=()=>{set(b.dataset.v);el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===get()));renderCat();});}

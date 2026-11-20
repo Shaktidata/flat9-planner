@@ -12,7 +12,8 @@ const bayX1=xr+1570, bayX2=bayX1+209;                   // living-room side bay
 const balY0=175, balY1=balY0+2575, livY0=balY1+150;     // balcony, sliding door wall SW4
 const kitY0=livY0+4225;                                  // ceiling-line where the kitchen starts
 const d9Y0=7430, d9Y1=d9Y0+IW, stY1=7990, bathY0=stY1+IW;// D9 doors, linen/broom store, bathroom
-const benchY0=6850, bayY1=7436, bedWallY0=11940, bedY0=bedWallY0+IW, bedY1=bedY0+2650, topY1=bedY1+PW;
+// the plain bench and the kitchen/bath wall end in line with the living-room cupboard front
+const benchY0=7430, bayY1=7436, bedWallY0=11940, bedY0=bedWallY0+IW, bedY1=bedY0+2650, topY1=bedY1+PW;
 
 const W=(x0,x1,y0,y1,o)=>Object.assign({r:[x0,x1,y0,y1],h:H,kind:'wall'},o||{});
 const wLeft=W(0,PW,75,topY1), wTop=W(0,xr+EW,bedY1,topY1), wRightMain=W(xr,xr+EW,bayY1,topY1);

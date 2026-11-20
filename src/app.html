@@ -208,8 +208,8 @@ function useProperty(p){
   CX=(x0+x1)/2000;CZ=(y0+y1)/2000;SPANX=(x1-x0)/1000;SPANZ=(y1-y0)/1000;
   ROOMS.forEach(r=>{r.rects=[r.r].concat(r.extra||[]);r.m=[wx(r.r[0]),wx(r.r[1]),wz(r.r[3]),wz(r.r[2])];});
   const rr=r=>({x0:wx(r[0]),x1:wx(r[1]),z0:wz(r[3]),z1:wz(r[2])});
-  WALLR=WALLS.map(w=>rr(w.r)).concat(FIXTURES.map(f=>rr(f.r)));
-  SWINGR=OPENINGS.filter(o=>o.type==='door').map(o=>{const r=o.r,hz=isHoriz(o.wall.r),w=hz?r[1]-r[0]:r[3]-r[2];
+  WALLR=WALLS.filter(w=>!w.z0).map(w=>rr(w.r)).concat(FIXTURES.filter(f=>!(f.z0>0)).map(f=>rr(f.r)));
+  SWINGR=OPENINGS.filter(o=>o.type==='door'&&!o.cab).map(o=>{const r=o.r,hz=isHoriz(o.wall.r),w=hz?r[1]-r[0]:r[3]-r[2];
     if(hz){const f=o.swing>0?r[3]:r[2],g=f+o.swing*w;return rr([r[0],r[1],Math.min(f,g),Math.max(f,g)]);}
     const f=o.swing>0?r[1]:r[0],g=f+o.swing*w;return rr([Math.min(f,g),Math.max(f,g),r[2],r[3]]);});
 }
@@ -279,14 +279,14 @@ const GEN=[
  {id:'g-ward2',n:'Wardrobe, 2-door',c:'Storage',d:[100,58,210],s:'ward',col:'#e7e1d6'},
  {id:'g-ward3',n:'Wardrobe, 3-door',c:'Storage',d:[150,58,210],s:'ward',col:'#e7e1d6'},
  {id:'g-wardslide',n:'Sliding wardrobe, 180 cm',c:'Storage',d:[180,62,220],s:'ward',col:'#6f5a49'},
- {id:'g-tvunit',n:'TV unit, 180 cm',c:'Storage',d:[180,40,45],s:'lowcab',col:'#6f5a49'},
+ {id:'g-tvunit',n:'TV unit, 180 cm',c:'Storage',d:[180,40,45],s:'lowcab',col:'#6f5a49',vars:[{l:'Walnut',col:'#6f5a49'},{l:'White',col:'#f2f1ec'}]},
  {id:'g-shoerack',n:'Shoe rack',c:'Storage',d:[80,35,100],s:'cab',col:'#8a6a4f'},
  {id:'g-bookshelf',n:'Bookshelf',c:'Storage',d:[80,30,180],s:'shelf',col:'#8a6a4f'},
  {id:'g-cubeshelf',n:'Cube bookshelf, 2 × 3',c:'Storage',d:[78,35,113],s:'cubeshelf',col:'#efece6'},
  {id:'g-dresser',n:'Dressing table with mirror',c:'Storage',d:[90,45,150],s:'dresser',col:'#e7e1d6'},
  {id:'g-pooja',n:'Pooja unit',c:'Storage',d:[60,40,120],s:'pooja',col:'#a8743f'},
  {id:'g-sofa3',n:'Sofa, 3-seat',c:'Seating',d:[200,88,85],s:'sofa',col:'#6c7a86'},
- {id:'g-lsofa',n:'L-shaped sofa (long sofa + 2-seater)',c:'Seating',d:[220,235,85],s:'lsofa',col:'#6c7a86'},
+ {id:'g-lsofa',n:'L-shaped sofa with chaise',c:'Seating',d:[270,160,85],s:'chaise',col:'#7b7f84'},
  {id:'g-sofa2',n:'Sofa, 2-seat',c:'Seating',d:[150,85,85],s:'sofa',col:'#6c7a86'},
  {id:'g-office',n:'Office chair',c:'Seating',d:[65,65,110],s:'office',col:'#2b2b2b'},
  {id:'g-dchair',n:'Dining chair',c:'Seating',d:[45,50,90],s:'chair',col:'#8a6a4f'},
@@ -445,11 +445,11 @@ function buildFloors(){
   });
 }
 function wallPieces(w){
-  const [xa,xb,ya,yb]=w.r,h=w.h||H,hz=isHoriz(w.r),a0=hz?xa:ya,a1=hz?xb:yb;
+  const [xa,xb,ya,yb]=w.r,h=w.h||H,w0=w.z0||0,hz=isHoriz(w.r),a0=hz?xa:ya,a1=hz?xb:yb;
   const ops=OPENINGS.filter(o=>o.wall===w).map(o=>({s:Math.max(a0,hz?o.r[0]:o.r[2]),e:Math.min(a1,hz?o.r[1]:o.r[3]),z0:o.z[0],z1:Math.min(o.z[1],h)})).sort((p,q)=>p.s-q.s);
   const pcs=[];let cur=a0;
-  ops.forEach(o=>{if(o.s>cur)pcs.push([cur,o.s,0,h]);if(o.z0>0)pcs.push([o.s,o.e,0,o.z0]);if(o.z1<h)pcs.push([o.s,o.e,o.z1,h]);cur=Math.max(cur,o.e);});
-  if(cur<a1)pcs.push([cur,a1,0,h]);
+  ops.forEach(o=>{if(o.s>cur)pcs.push([cur,o.s,w0,h]);if(o.z0>w0)pcs.push([o.s,o.e,w0,o.z0]);if(o.z1<h)pcs.push([o.s,o.e,o.z1,h]);cur=Math.max(cur,o.e);});
+  if(cur<a1)pcs.push([cur,a1,w0,h]);
   return pcs.map(p=>hz?[p[0],p[1],ya,yb,p[2],p[3]]:[xa,xb,p[0],p[1],p[2],p[3]]);
 }
 function railGroup(w){if(w.style==='metal')return metalRail(w);return glassRail(w);}
@@ -466,7 +466,7 @@ function glassRail(w){const [xa,xb,ya,yb]=w.r,hz=isHoriz(w.r),L=(hz?xb-xa:yb-ya)
   const n=Math.max(2,Math.round(L/1.2));for(let i=0;i<=n;i++)boxAt(g,0.04,h-0.1,0.04,-L/2+0.02+i*(L-0.04)/n,0.1+(h-0.1)/2,0,frameMat);
   return g;}
 let opTarget=[],opCur=[],opParts=[];
-function defaultOps(){return OPENINGS.map(o=>o.type==='door'?1:0);}
+function defaultOps(){return OPENINGS.map(o=>o.type==='door'&&!o.cab?1:0);}
 function openingGroup(o,cap,idx){
   const wr=o.wall.r,hz=isHoriz(wr),a0=hz?o.r[0]:o.r[2],a1=hz?o.r[1]:o.r[3],t0=hz?wr[2]:wr[0],t1=hz?wr[3]:wr[1];
   const W=(a1-a0)/1000,T=(t1-t0)/1000,am=(a0+a1)/2,tm=(t0+t1)/2,z0=o.z[0]/1000,z1=Math.min(o.z[1],H)/1000;
@@ -479,7 +479,17 @@ function openingGroup(o,cap,idx){
   const frame=()=>{bx(W,z1-ft,z1,fd,0,0,frameMat);bx(W,z0,z0+(z0>0?ft:0.02),fd,0,0,frameMat);bx(ft,z0,z1,fd,-W/2+ft/2,0,frameMat);bx(ft,z0,z1,fd,W/2-ft/2,0,frameMat);};
   const pane=(grp,cx,pw,y0,y1)=>{bxIn(grp,pw,y0,y0+0.05,0.035,cx,0,frameMat);bxIn(grp,pw,y1-0.05,y1,0.035,cx,0,frameMat);bxIn(grp,0.035,y0,y1,0.035,cx-pw/2+0.0175,0,frameMat);bxIn(grp,0.035,y0,y1,0.035,cx+pw/2-0.0175,0,frameMat);bxIn(grp,pw-0.06,y0+0.05,y1-0.05,o.panel?0.02:0.008,cx,0,o.panel?mat(o.panel,{roughness:.6}):glassMat,!!o.panel);};
   let apply=()=>{};
-  if(o.type==='door'){
+  if(o.type==='door'&&o.cab){
+    const lw=W-0.004,s=o.swing*nS,hx=o.hinge==='a'?-W/2+0.002:W/2-0.002,inn=o.hinge==='a'?1:-1,leaf=mat(o.color||'#ece8df',{roughness:.5});
+    const piv=sub(hx,s*(T/2+0.001));bxIn(piv,lw,z0+0.003,z1-0.003,0.018,inn*lw/2,s*0.009,leaf);
+    bxIn(piv,0.012,z0+0.03,z0+0.15,0.02,inn*(lw-0.05),s*0.028,mat('#bfc3c7',{metalness:.7,roughness:.3}),false);
+    apply=t=>{piv.rotation.y=t*(-s*inn*Math.PI/2);};
+  } else if(o.type==='slide1'){
+    bx(W,z1-0.03,z1,0.06,0,0,frameMat);bx(W,z0,z0+0.02,0.06,0,0,frameMat);
+    const q=sub(0,(o.track||0)*0.022),dir=o.dir||1;bxIn(q,W+0.02,z0+0.02,z1-0.03,0.02,0,0,mat(o.panel||'#ece8df',{roughness:.6}));
+    bxIn(q,0.015,z0+0.9,z0+1.3,0.035,-dir*(W/2-0.05),0,mat('#bfc3c7',{metalness:.7,roughness:.3}),false);
+    apply=t=>{q.position.x=t*dir*W*0.97;};
+  } else if(o.type==='door'){
     const lw=W-0.03,lh=Math.min(z1,2.05),s=o.swing*nS,hx=o.hinge==='a'?-W/2+0.015:W/2-0.015,inn=o.hinge==='a'?1:-1,leaf=mat(o.color||'#a07a55',{roughness:.6}),cas=mat('#ebe6dc',{roughness:.7});
     bx(0.045,0,z1,T+0.02,-W/2+0.0225,0,cas);bx(0.045,0,z1,T+0.02,W/2-0.0225,0,cas);
     const piv=sub(hx,s*(T/2-0.025));bxIn(piv,lw,0,lh,0.04,inn*lw/2,0,leaf);
@@ -507,9 +517,9 @@ function openingGroup(o,cap,idx){
   return {g,apply};
 }
 function applyOps(){opParts.forEach((p,i)=>p.apply(opCur[i]||0));}
-function toggleOpening(i){opTarget[i]=opTarget[i]>0.5?0:1;const o=OPENINGS[i];toast((o.label&&o.label!=='W2'&&o.label!=='W3'?o.label:o.type==='door'?'Door':o.type.startsWith('slide')?'Sliding door':'Window')+(opTarget[i]?' opened':' closed'));updateOpButtons();save();}
+function toggleOpening(i){const o=OPENINGS[i];opTarget[i]=o.ways===2?(opTarget[i]===0?1:opTarget[i]===1?-1:0):(opTarget[i]>0.5?0:1);toast((o.label&&o.label!=='W2'&&o.label!=='W3'?o.label:o.type==='door'?'Door':o.type.startsWith('slide')?'Sliding door':'Window')+(opTarget[i]?' opened':' closed'));updateOpButtons();save();}
 function setAllOps(v){opTarget=opTarget.map(()=>v);updateOpButtons();save();}
-function updateOpButtons(){const all1=opTarget.every(v=>v>0.5),all0=opTarget.every(v=>v<0.5);$('#op-open').setAttribute('aria-pressed',all1);$('#op-close').setAttribute('aria-pressed',all0);}
+function updateOpButtons(){const all1=opTarget.every(v=>Math.abs(v)>0.5),all0=opTarget.every(v=>Math.abs(v)<0.5);$('#op-open').setAttribute('aria-pressed',all1);$('#op-close').setAttribute('aria-pressed',all0);}
 function buildWalls(){
   clearGroup(wallGroup);const capMm=wallCap*1000;
   WALLS.forEach(w=>{
@@ -549,6 +559,13 @@ const BUILD={
   const n=w>1.6?3:(w>1.05?2:1),cw=(w-2*a)/n;for(let i=0;i<n;i++)add(g,B(cw-0.01,0.14,d-0.24),mat(shade(c,0.03),{roughness:.95}),-w/2+a+cw*(i+.5),sh-0.07+0.07,0.1);
   add(g,B(w-2*a,h-0.27,0.22),m,0,0.27+(h-0.27)/2,-d/2+0.11);
   [-1,1].forEach(s=>add(g,B(a,Math.min(h*0.78,0.64)-0.07,d),m,s*(w/2-a/2),0.07+(Math.min(h*0.78,0.64)-0.07)/2,0));},
+ chaise(g,w,d,h,c){const m=mat(c,{roughness:.95}),cu=mat(shade(c,0.03),{roughness:.95}),dk=mat('#2b2b2b'),cd=0.9,cw=0.95,a=0.18;
+  [[-w/2+0.06,-d/2+0.06],[w/2-0.06,-d/2+0.06],[w/2-0.06,-d/2+cd-0.06],[-w/2+0.06,d/2-0.06],[-w/2+cw-0.06,d/2-0.06]].forEach(p=>add(g,B(0.06,0.07,0.06),dk,p[0],0.035,p[1]));
+  add(g,B(w,0.3,cd),m,0,0.22,-d/2+cd/2);add(g,B(cw,0.3,d-cd),m,-w/2+cw/2,0.22,-d/2+cd+(d-cd)/2);
+  add(g,B(w-a,h-0.37,0.22),m,-a/2,0.37+(h-0.37)/2,-d/2+0.11);add(g,B(a,0.55,cd),m,w/2-a/2,0.07+0.275,-d/2+cd/2);
+  const sx0=-w/2+cw,sx1=w/2-a,sw=(sx1-sx0)/3;for(let i=0;i<3;i++)add(g,B(sw-0.012,0.12,cd-0.24),cu,sx0+sw*(i+.5),0.43,-d/2+0.22+(cd-0.24)/2);
+  add(g,B(cw-0.02,0.12,d-0.24),cu,-w/2+cw/2,0.43,-d/2+0.22+(d-0.24)/2);
+  for(let i=0;i<4;i++)add(g,B((w-a-0.06)/4-0.02,0.4,0.16),cu,-w/2+0.03+((w-a-0.06)/4)*(i+.5),0.62,-d/2+0.3).rotation.x=-0.12;},
  lsofa(g,w,d,h,c){const L=new THREE.Group();BUILD.sofa(L,w,0.85,h,c);L.position.z=-d/2+0.425;g.add(L);
   const S=new THREE.Group();BUILD.sofa(S,1.5,0.9,h,c);S.rotation.y=Math.PI/2;S.position.set(-w/2+0.45,0,-d/2+0.85+0.75);g.add(S);},
  cubeshelf(g,w,d,h,c){const m=mat(c,{roughness:.6}),t=0.02;[-1,0,1].forEach(k=>add(g,B(t,h,d),m,k*(w/2-t/2),h/2,0));
@@ -779,16 +796,16 @@ let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(saveNow,250);}
 function loadState(s){
   items.forEach(i=>scene.remove(i.obj));items=[];select(null);
   (s.items||[]).forEach(o=>makeItem(o.id,o.x,o.z,o.r,o.e,o.vi,Object.assign({},o.u?{u:1}:{},o.sx!=null?{sx:o.sx,sz:o.sz}:{})));
-  opTarget=(Array.isArray(s.o)&&s.o.length===OPENINGS.length)?s.o.map(v=>v?1:0):defaultOps();opCur=opTarget.slice();applyOps();updateOpButtons();
+  opTarget=(Array.isArray(s.o)&&s.o.length===OPENINGS.length)?s.o.map(v=>v<0?-1:v?1:0):defaultOps();opCur=opTarget.slice();applyOps();updateOpButtons();
   const d=defaultFin();fin=(s.fin&&s.fin.floor)?{floor:Object.assign(d.floor,s.fin.floor),tile:Object.assign(d.tile,s.fin.tile||{}),wall:s.fin.wall||d.wall}:d;
   wallMat.color.set(new THREE.Color(fin.wall).convertSRGBToLinear());buildFloors();buildLabels();renderFin();renderList();
 }
-function sample(){return{v:2,p:P.id,sv:P.sampleVersion||1,items:(P.sample||[]).filter(a=>BYID[a.id]).map(a=>{const x=+wx(a.x).toFixed(3),z=+wz(a.y).toFixed(3);return{id:a.id,x,z,sx:x,sz:z,r:a.r||0,e:a.e!=null?a.e:defElev(BYID[a.id]),vi:0};}),fin:defaultFin()};}
+function sample(){return{v:2,p:P.id,sv:P.sampleVersion||1,items:(P.sample||[]).filter(a=>BYID[a.id]).map(a=>{const x=+wx(a.x).toFixed(3),z=+wz(a.y).toFixed(3);return{id:a.id,x,z,sx:x,sz:z,r:a.r||0,e:a.e!=null?a.e:defElev(BYID[a.id]),vi:a.vi||0,f:a.f||0};}),fin:defaultFin()};}
 // When a home's starting layout is updated, bring the new furniture in while keeping what the person changed:
 // items they added stay, sample items they moved keep their spot, finishes and open doors stay.
 function upgradeLayout(s){const n=sample(),pool=(s.items||[]).filter(i=>!i.u&&i.sx!=null);
-  n.items=n.items.map(it=>{const k=pool.findIndex(p=>p.id===it.id);if(k<0)return it;const p=pool.splice(k,1)[0];
-    return Math.hypot(p.x-p.sx,p.z-p.sz)>0.01?Object.assign({},it,{x:p.x,z:p.z,r:p.r,e:p.e,vi:p.vi}):Object.assign({},it,{vi:p.vi});});
+  n.items=n.items.map(it=>{if(it.f)return it;const k=pool.findIndex(p=>p.id===it.id);if(k<0)return it;const p=pool.splice(k,1)[0];
+    return Math.hypot(p.x-p.sx,p.z-p.sz)>0.01?Object.assign({},it,{x:p.x,z:p.z,r:p.r,e:p.e,vi:p.vi}):it;});
   n.items=n.items.concat((s.items||[]).filter(i=>i.u));if(s.fin)n.fin=s.fin;if(Array.isArray(s.o))n.o=s.o;return n;}
 function savedFor(id){try{const s=JSON.parse(localStorage.getItem(KEYP+id)||'null');return s&&s.v===2?s:null;}catch(_){return null;}}
 function switchHome(id,state){
@@ -845,7 +862,7 @@ let lastHome=null;try{lastHome=localStorage.getItem(KEYP+'last');}catch(_){}
 switchHome(lastHome);
 let lastT=0;
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(0.05,(now-(lastT||now))/1000);lastT=now;if(anim)anim(now);
-  const rm=matchMedia('(prefers-reduced-motion: reduce)').matches;for(let i=0;i<opParts.length;i++){if(opCur[i]!==opTarget[i]){const d=opTarget[i]-opCur[i],st=rm?1:dt*1.8;opCur[i]=Math.abs(d)<=st?opTarget[i]:opCur[i]+Math.sign(d)*st;const e=opCur[i]*opCur[i]*(3-2*opCur[i]);opParts[i].apply(e);}}controls.update();renderer.render(scene,camera);}
+  const rm=matchMedia('(prefers-reduced-motion: reduce)').matches;for(let i=0;i<opParts.length;i++){if(opCur[i]!==opTarget[i]){const d=opTarget[i]-opCur[i],st=rm?1:dt*1.8;opCur[i]=Math.abs(d)<=st?opTarget[i]:opCur[i]+Math.sign(d)*st;const c=Math.abs(opCur[i]),e=Math.sign(opCur[i])*c*c*(3-2*c);opParts[i].apply(e);}}controls.update();renderer.render(scene,camera);}
 requestAnimationFrame(loop);
 $('#loading').hidden=true;
 renderFin();

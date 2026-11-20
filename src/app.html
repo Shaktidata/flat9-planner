@@ -282,9 +282,11 @@ const GEN=[
  {id:'g-tvunit',n:'TV unit, 180 cm',c:'Storage',d:[180,40,45],s:'lowcab',col:'#6f5a49'},
  {id:'g-shoerack',n:'Shoe rack',c:'Storage',d:[80,35,100],s:'cab',col:'#8a6a4f'},
  {id:'g-bookshelf',n:'Bookshelf',c:'Storage',d:[80,30,180],s:'shelf',col:'#8a6a4f'},
+ {id:'g-cubeshelf',n:'Cube bookshelf, 2 × 3',c:'Storage',d:[78,35,113],s:'cubeshelf',col:'#efece6'},
  {id:'g-dresser',n:'Dressing table with mirror',c:'Storage',d:[90,45,150],s:'dresser',col:'#e7e1d6'},
  {id:'g-pooja',n:'Pooja unit',c:'Storage',d:[60,40,120],s:'pooja',col:'#a8743f'},
  {id:'g-sofa3',n:'Sofa, 3-seat',c:'Seating',d:[200,88,85],s:'sofa',col:'#6c7a86'},
+ {id:'g-lsofa',n:'L-shaped sofa (long sofa + 2-seater)',c:'Seating',d:[220,235,85],s:'lsofa',col:'#6c7a86'},
  {id:'g-sofa2',n:'Sofa, 2-seat',c:'Seating',d:[150,85,85],s:'sofa',col:'#6c7a86'},
  {id:'g-office',n:'Office chair',c:'Seating',d:[65,65,110],s:'office',col:'#2b2b2b'},
  {id:'g-dchair',n:'Dining chair',c:'Seating',d:[45,50,90],s:'chair',col:'#8a6a4f'},
@@ -420,7 +422,7 @@ function buildStatic(){
       if(f.sink){boxAt(staticGroup,0.42,0.012,0.55,wx(f.sink[0]),h+0.006,wz(f.sink[1]),mat('#c7cbcf',{metalness:.7,roughness:.25}),false);}
       if(f.hob){boxAt(staticGroup,0.45,0.012,0.6,wx(f.hob[0]),h+0.006,wz(f.hob[1]),mat('#111'),false);
         [[-0.1,-0.13],[-0.1,0.13],[0.1,0]].forEach(p=>{const t=new THREE.Mesh(new THREE.TorusGeometry(0.07,0.012,8,20),mat('#555'));t.rotation.x=Math.PI/2;t.position.set(wx(f.hob[0])+p[0],h+0.016,wz(f.hob[1])+p[1]);staticGroup.add(t);});}}
-    else boxAt(staticGroup,w,h,d,cx,h/2,cz,mat(f.color||'#cfc8bb'));});
+    else{const z0=(f.z0||0)/1000;boxAt(staticGroup,w,h,d,cx,z0+h/2,cz,mat(f.color||'#cfc8bb'));}});
   const c=P.compass;if(c){const pad=0.9,dark=false;
     [[c.up,0,-SPANZ/2-pad,0],[c.down,0,SPANZ/2+pad,0],[c.left,-SPANX/2-pad,0,Math.PI/2],[c.right,SPANX/2+pad,0,-Math.PI/2]].forEach(([t,x,z,a])=>{if(!t)return;
       const m=new THREE.Mesh(new THREE.PlaneGeometry(1.8,0.56),new THREE.MeshBasicMaterial({map:textTex([t.toUpperCase()],dark,true),transparent:true,depthWrite:false}));
@@ -485,7 +487,8 @@ function openingGroup(o,cap,idx){
   } else if(o.type==='slide2'||o.type==='slide3'||o.type==='slide'){
     frame();const n=o.type==='slide3'?3:2,inner=W-2*ft,step=inner/n,pw=step+0.04,panes=[];
     for(let i=0;i<n;i++){const cx=Math.max(-W/2+ft+pw/2,Math.min(W/2-ft-pw/2,-inner/2+step*(i+0.5)));const q=sub(cx,(i-(n-1)/2)*0.024);pane(q,0,pw,z0+ft,z1-ft);panes.push({q,x0:cx,i});}
-    apply=t=>panes.forEach(p=>{p.q.position.x=p.x0-p.i*step*0.94*t;});
+    const fixed=o.fixed||null,dir=o.dir||-1;
+    apply=t=>panes.forEach(p=>{p.q.position.x=fixed?(fixed.includes(p.i)?p.x0:p.x0+dir*step*0.94*t):p.x0-p.i*step*0.94*t;});
   } else if(o.type==='pivot'){
     frame();const n=Math.max(1,Math.round(W/0.8)),inner=W-2*ft,pw=inner/n,panes=[];
     for(let i=0;i<n;i++){const cx=-inner/2+pw*(i+0.5),q=sub(cx,0);pane(q,0,pw-0.012,z0+ft,z1-ft);bx(0.012,z0+ft,z1-ft,0.012,cx,0,frameMat);panes.push(q);}
@@ -542,6 +545,12 @@ const BUILD={
   const n=w>1.6?3:(w>1.05?2:1),cw=(w-2*a)/n;for(let i=0;i<n;i++)add(g,B(cw-0.01,0.14,d-0.24),mat(shade(c,0.03),{roughness:.95}),-w/2+a+cw*(i+.5),sh-0.07+0.07,0.1);
   add(g,B(w-2*a,h-0.27,0.22),m,0,0.27+(h-0.27)/2,-d/2+0.11);
   [-1,1].forEach(s=>add(g,B(a,Math.min(h*0.78,0.64)-0.07,d),m,s*(w/2-a/2),0.07+(Math.min(h*0.78,0.64)-0.07)/2,0));},
+ lsofa(g,w,d,h,c){const L=new THREE.Group();BUILD.sofa(L,w,0.85,h,c);L.position.z=-d/2+0.425;g.add(L);
+  const S=new THREE.Group();BUILD.sofa(S,1.5,0.9,h,c);S.rotation.y=Math.PI/2;S.position.set(-w/2+0.45,0,-d/2+0.85+0.75);g.add(S);},
+ cubeshelf(g,w,d,h,c){const m=mat(c,{roughness:.6}),t=0.02;[-1,0,1].forEach(k=>add(g,B(t,h,d),m,k*(w/2-t/2),h/2,0));
+  for(let i=0;i<4;i++)add(g,B(w,t,d),m,0,t/2+i*(h-t)/3,0);add(g,B(w,h,0.006),mat(shade(c,-0.05)),0,h/2,-d/2+0.003);
+  const R=rng(11);for(let r=0;r<3;r++)for(let k=0;k<2;k++){if(R()<0.35)continue;let x=-w/2+t+0.02+k*(w/2);const y=t+r*(h-t)/3;
+    for(let b=0;b<5&&R()<0.85;b++){const bw=0.025+R()*0.03,bh=0.2+R()*0.1;add(g,B(bw,Math.min(bh,(h-t)/3-0.04),d*0.75),mat(['#8b3a3a','#2d5b4f','#c9a227','#3b5d8f','#d8d2c4'][(R()*5)|0]),x+bw/2,y+Math.min(bh,(h-t)/3-0.04)/2,0);x+=bw+0.004;}}},
  easy(g,w,d,h,c){const m=mat(c,{roughness:.9}),wd=mat('#d9b98a');legs4(g,w,d,0.18,0.035,wd,0.04);
   add(g,B(w,0.12,d*0.8),m,0,0.24,d*0.08);const bk=add(g,B(w,h-0.25,0.1),m,0,0.25+(h-0.25)/2,-d/2+0.12);bk.rotation.x=-0.22;},
  chair(g,w,d,h,c,o){const m=mat(c,{roughness:.6}),lg=mat(o.leg||shade(c,-0.12),{roughness:.6});legs4(g,w,d,0.44,0.03,lg,0.02);

@@ -85,22 +85,35 @@ const fixtures=[
  {type:'box',r:[xr-420,xr,9250,9650],h:420,color:'#fbfbfb',label:'Toilet'},
  {type:'box',r:[bx0+10,xr,bathY0,bathY0+950],h:30,color:'#cfd4d8',label:'Shower'}
 ];
-const bedX=x0+2330;                                       // bed centre: under the window, right of the door swing
-const w9x=(bayX1-(1570+650)/2+bayX1-(1570-650)/2)/2;     // centre of the small window W9
+// starting furniture, as arranged by the owner (plan mm; f:1 = applied when the layout updates)
 const sample=[
- ['g-tvunit',bayX1-200,5600,270,0,1,1],['g-tv55s',bayX1-200,5600,270,0.45,0,1],['g-lsofa',x0+2450,5300,90,0,0,1],
- ['ps-rug',x0+3150,5600,0],['g-shoerack',x0+160,(6820+7230)/2,90,0,0,1],['g-cubeshelf',x0+175,livY0+400,90],['g-ac',x0+115,livY0+650,90,2.15,0,1],
- ['g-dining4',x0+900,4000,0],['g-dchair',x0+600,3300,180,0,1,1],['g-dchair',x0+1200,3300,180,0,1,1],['g-dchair',x0+600,4700,0,0,1,1],['g-dchair',x0+1200,4700,0,0,1,1],
- ['g-desk',w9x,livY0+300,180,0,0,1],['g-office',w9x,livY0+950,0,0,0,1],
- ['g-fridge2',x0+360,11500,90],
- // bed: headboard against the window wall, clear of the bedroom door's swing; a cabinet each side (lamp on one, books on the other)
- ['g-queen',bedX,bedY1-1065,0,0,0,1],['g-nightstand',bedX-1010,bedY1-200,0,0,0,1],['g-nightstand',bedX+1010,bedY1-200,0,0,0,1],
- ['g-tablelamp',bedX-1010,bedY1-210,0,0.45,0,1],['g-books',bedX+1010,bedY1-210,0,0.45,0,1],
- ['g-grass',(x0+balX1)/2,(balY0+balY1)/2,0,0,0,1],['g-bistro',(x0+balX1)/2,(balY0+balY1)/2+150,0,0,0,1],['g-plant',x0+350,500,0,0,0,1]
-].map(a=>({id:a[0],x:a[1],y:a[2],r:a[3],e:a[4]||undefined,vi:a[5]||0,f:a[6]?1:0}));
+  {id:'g-tvunit',x:5180,y:5600,r:270,e:0,vi:1,f:1},
+  {id:'g-tv55s',x:5180,y:5600,r:270,e:0.45,vi:0,f:1},
+  {id:'g-lsofa',x:2700,y:5300,r:90,e:0,vi:0,f:1},
+  {id:'ps-rug',x:3675,y:5613,r:0,e:0,vi:0,f:1},
+  {id:'g-shoerack',x:410,y:7026,r:90,e:0,vi:0,f:1},
+  {id:'g-cubeshelf',x:425,y:3300,r:90,e:0,vi:0,f:1},
+  {id:'g-ac',x:366,y:3550,r:90,e:2.15,vi:0,f:1},
+  {id:'g-dining4',x:745,y:4623,r:90,e:0,vi:0,f:1},
+  {id:'g-dchair',x:745,y:4203,r:180,e:0,vi:1,f:1},
+  {id:'g-dchair',x:955,y:4603,r:270,e:0,vi:1,f:1},
+  {id:'g-dchair',x:575,y:4683,r:90,e:0,vi:1,f:1},
+  {id:'g-dchair',x:755,y:5073,r:0,e:0,vi:1,f:1},
+  {id:'g-desk',x:4595,y:3200,r:180,e:0,vi:0,f:1},
+  {id:'g-office',x:4595,y:3850,r:0,e:0,vi:0,f:1},
+  {id:'g-fridge2',x:655,y:11453,r:90,e:0,vi:0,f:1},
+  {id:'g-queen',x:2580,y:13635,r:0,e:0,vi:0,f:1},
+  {id:'g-nightstand',x:1570,y:14500,r:0,e:0,vi:0,f:1},
+  {id:'g-nightstand',x:3590,y:14500,r:0,e:0,vi:0,f:1},
+  {id:'g-tablelamp',x:1570,y:14491,r:0,e:0.45,vi:0,f:1},
+  {id:'g-books',x:3590,y:14491,r:0,e:0.45,vi:0,f:1},
+  {id:'g-grass',x:2155,y:1463,r:0,e:0,vi:0,f:1},
+  {id:'g-bistro',x:2155,y:1612,r:0,e:0,vi:0,f:1},
+  {id:'g-plant',x:600,y:500,r:0,e:0,vi:0,f:1}
+];
 
 (window.PLANNER_PROPERTIES=window.PLANNER_PROPERTIES||[]).push({
-  id:'unit10', name:'Unit 10', sampleVersion:8, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
+  id:'unit10', name:'Unit 10', sampleVersion:9, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
   finishes:{wall:'#f7f7f5',
     floor:{living:'solid-wood',kitchen:'solid-wood',store:'solid-wood',bed1:'carpet',bath:'grey-tile',balcony:'grey-granite'},
     tile:{bath:'1x1',balcony:'2x2'}},

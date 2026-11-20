@@ -375,7 +375,7 @@ const fixtures=[
 const w9x=(bayX1-(1570+650)/2+bayX1-(1570-650)/2)/2;     // centre of the small window W9
 const sample=[
  ['g-tvunit',bayX1-200,5600,270,0,1,1],['g-tv55s',bayX1-200,5600,270,0.45,0,1],['g-lsofa',x0+2450,5300,90,0,0,1],
- ['ps-rug',x0+3150,5600,0],['g-shoerack',x0+400+50,7230-175,0,0,0,1],['g-cubeshelf',x0+175,livY0+400,90],['g-ac',x0+115,livY0+650,90,2.15,0,1],
+ ['ps-rug',x0+3150,5600,0],['g-shoerack',x0+160,(6820+7230)/2,90,0,0,1],['g-cubeshelf',x0+175,livY0+400,90],['g-ac',x0+115,livY0+650,90,2.15,0,1],
  ['g-dining4',x0+900,4000,0],['g-dchair',x0+600,3300,180],['g-dchair',x0+1200,3300,180],['g-dchair',x0+600,4700,0],['g-dchair',x0+1200,4700,0],
  ['g-desk',w9x,livY0+300,180,0,0,1],['g-office',w9x,livY0+950,0,0,0,1],
  ['g-fridge2',x0+360,11500,90],['g-queen',xr-1065,13700,270],['ps-bedside',xr-150,12730,270],
@@ -383,7 +383,7 @@ const sample=[
 ].map(a=>({id:a[0],x:a[1],y:a[2],r:a[3],e:a[4]||undefined,vi:a[5]||0,f:a[6]?1:0}));
 
 (window.PLANNER_PROPERTIES=window.PLANNER_PROPERTIES||[]).push({
-  id:'unit10', name:'Unit 10', sampleVersion:5, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
+  id:'unit10', name:'Unit 10', sampleVersion:6, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
   finishes:{wall:'#f7f7f5',
     floor:{living:'solid-wood',kitchen:'solid-wood',store:'solid-wood',bed1:'carpet',bath:'grey-tile',balcony:'grey-granite'},
     tile:{bath:'1x1',balcony:'2x2'}},
@@ -484,7 +484,7 @@ const GEN=[
  {id:'g-ward3',n:'Wardrobe, 3-door',c:'Storage',d:[150,58,210],s:'ward',col:'#e7e1d6'},
  {id:'g-wardslide',n:'Sliding wardrobe, 180 cm',c:'Storage',d:[180,62,220],s:'ward',col:'#6f5a49'},
  {id:'g-tvunit',n:'TV unit, 180 cm',c:'Storage',d:[180,40,45],s:'lowcab',col:'#6f5a49',vars:[{l:'Walnut',col:'#6f5a49'},{l:'White',col:'#f2f1ec'}]},
- {id:'g-shoerack',n:'Shoe cabinet (closed)',c:'Storage',d:[80,35,100],s:'cab',col:'#efece6'},
+ {id:'g-shoerack',n:'Shoe cabinet (closed)',c:'Storage',d:[40,32,90],s:'cab',col:'#4a3426'},
  {id:'g-bookshelf',n:'Bookshelf',c:'Storage',d:[80,30,180],s:'shelf',col:'#8a6a4f'},
  {id:'g-cubeshelf',n:'Cube bookshelf, 2 × 3',c:'Storage',d:[78,35,113],s:'cubeshelf',col:'#efece6'},
  {id:'g-dresser',n:'Dressing table with mirror',c:'Storage',d:[90,45,150],s:'dresser',col:'#e7e1d6'},
@@ -728,11 +728,12 @@ function buildWalls(){
   clearGroup(wallGroup);const capMm=wallCap*1000;
   WALLS.forEach(w=>{
     if(w.kind==='rail'){wallGroup.add(railGroup(w));return;}
-    wallPieces(w).forEach(b=>{const z0=b[4],z1=Math.min(b[5],capMm);if(z1-z0<1)return;
+    const cm=w.z0?Infinity:capMm;
+    wallPieces(w).forEach(b=>{const z0=b[4],z1=Math.min(b[5],cm);if(z1-z0<1)return;
       const m=boxAt(wallGroup,(b[1]-b[0])/1000,(z1-z0)/1000,(b[3]-b[2])/1000,wx((b[0]+b[1])/2),(z0+z1)/2000,wz((b[2]+b[3])/2),wallMat);
-      if(z1<b[5]&&z1===capMm)boxAt(wallGroup,(b[1]-b[0])/1000+0.001,0.004,(b[3]-b[2])/1000+0.001,m.position.x,z1/1000+0.002,m.position.z,capMat,false);});
+      if(z1<b[5]&&z1===cm)boxAt(wallGroup,(b[1]-b[0])/1000+0.001,0.004,(b[3]-b[2])/1000+0.001,m.position.x,z1/1000+0.002,m.position.z,capMat,false);});
   });
-  opParts=OPENINGS.map((o,i)=>{const r=openingGroup(o,wallCap,i);wallGroup.add(r.g);r.apply(opCur[i]||0);return r;});
+  opParts=OPENINGS.map((o,i)=>{const r=openingGroup(o,(o.cab||o.wall.z0)?H/1000:wallCap,i);wallGroup.add(r.g);r.apply(opCur[i]||0);return r;});
 }
 function textTex(lines,dark,single){const cv=document.createElement('canvas');cv.width=512;cv.height=160;const g=cv.getContext('2d');
   g.textAlign='center';g.fillStyle=dark?'rgba(255,255,255,.92)':'rgba(30,36,33,.85)';

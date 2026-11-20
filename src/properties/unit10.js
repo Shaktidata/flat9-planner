@@ -75,7 +75,7 @@ const fixtures=[
 const w9x=(bayX1-(1570+650)/2+bayX1-(1570-650)/2)/2;     // centre of the small window W9
 const sample=[
  ['g-tvunit',bayX1-200,5600,270,0,1,1],['g-tv55s',bayX1-200,5600,270,0.45,0,1],['g-lsofa',x0+2450,5300,90,0,0,1],
- ['ps-rug',x0+3150,5600,0],['g-shoerack',x0+400+50,7230-175,0,0,0,1],['g-cubeshelf',x0+175,livY0+400,90],['g-ac',x0+115,livY0+650,90,2.15,0,1],
+ ['ps-rug',x0+3150,5600,0],['g-shoerack',x0+160,(6820+7230)/2,90,0,0,1],['g-cubeshelf',x0+175,livY0+400,90],['g-ac',x0+115,livY0+650,90,2.15,0,1],
  ['g-dining4',x0+900,4000,0],['g-dchair',x0+600,3300,180],['g-dchair',x0+1200,3300,180],['g-dchair',x0+600,4700,0],['g-dchair',x0+1200,4700,0],
  ['g-desk',w9x,livY0+300,180,0,0,1],['g-office',w9x,livY0+950,0,0,0,1],
  ['g-fridge2',x0+360,11500,90],['g-queen',xr-1065,13700,270],['ps-bedside',xr-150,12730,270],
@@ -83,7 +83,7 @@ const sample=[
 ].map(a=>({id:a[0],x:a[1],y:a[2],r:a[3],e:a[4]||undefined,vi:a[5]||0,f:a[6]?1:0}));
 
 (window.PLANNER_PROPERTIES=window.PLANNER_PROPERTIES||[]).push({
-  id:'unit10', name:'Unit 10', sampleVersion:5, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
+  id:'unit10', name:'Unit 10', sampleVersion:6, subtitle:'1 bedroom apartment · 66.15 m² · 2.7 m ceilings', ceiling:H,
   finishes:{wall:'#f7f7f5',
     floor:{living:'solid-wood',kitchen:'solid-wood',store:'solid-wood',bed1:'carpet',bath:'grey-tile',balcony:'grey-granite'},
     tile:{bath:'1x1',balcony:'2x2'}},
